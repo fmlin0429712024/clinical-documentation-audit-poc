@@ -1,0 +1,4 @@
+interface:
+  display_name: "Clinical Audit Orchestrator"
+  short_description: "Orchestrate a synthetic ICHD audit workflow"
+  default_prompt: "Use $clinical-audit-orchestrator to run the synthetic ICHD clinical documentation audit workflow."

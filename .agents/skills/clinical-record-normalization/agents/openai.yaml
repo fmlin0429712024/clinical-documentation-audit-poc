@@ -1,0 +1,4 @@
+interface:
+  display_name: "Clinical Record Normalization"
+  short_description: "Normalize synthetic ICHD clinical records"
+  default_prompt: "Use $clinical-record-normalization to normalize a synthetic ICHD patient record."

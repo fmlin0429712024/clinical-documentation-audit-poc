@@ -1,0 +1,4 @@
+interface:
+  display_name: "Audit Rule Evaluation"
+  short_description: "Evaluate synthetic documentation audit rules"
+  default_prompt: "Use $audit-rule-evaluation to evaluate synthetic ICHD audit rules."

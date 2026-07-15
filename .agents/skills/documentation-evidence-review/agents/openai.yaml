@@ -1,0 +1,4 @@
+interface:
+  display_name: "Documentation Evidence Review"
+  short_description: "Review synthetic clinical documentation evidence"
+  default_prompt: "Use $documentation-evidence-review to review evidence in a synthetic ICHD record."
