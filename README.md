@@ -25,7 +25,7 @@ flowchart TD
 
 ## What the POC Shows
 
-- A **synthetic gold set** that stitches together patient context, ICHD treatment information, clinical documentation, and audit-relevant evidence.
+- A simple **synthetic gold set**: one `patient` object plus a `clinical_treatments[]` array. Each treatment carries only the minimal treatment and documentation evidence needed for this POC.
 - Four reusable skills: normalization, evidence review, rule evaluation, and orchestration.
 - Human review as the decision gate: an agent may draft a finding but never makes a clinical, coding, or payment decision.
 - An evaluation loop that captures reviewer decisions and improves the audit workflow over time.
@@ -43,4 +43,3 @@ flowchart TD
 ## Safety Boundary
 
 This repository deliberately uses simplified, fictional examples. It must not be used for patient care, clinical coding, billing, coverage, quality reporting, or any real-world decision without qualified clinical, compliance, privacy, and legal review.
-

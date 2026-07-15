@@ -1,35 +1,20 @@
 {
   "dataset_notice": "Fully fictional mock data created solely for this public POC. Not derived from any patient, provider, or client system.",
   "record_id": "SYN-ICHD-0001",
-  "patient_context": {
+  "patient": {
     "synthetic_patient_id": "PT-SYN-1042",
     "age_band": "60-69",
     "care_modality": "in-center hemodialysis",
-    "primary_condition_label": "synthetic end-stage kidney disease scenario",
-    "allergies": ["synthetic example: none recorded"]
+    "primary_condition_label": "synthetic kidney-care scenario"
   },
-  "treatment_context": {
-    "treatment_date": "2026-01-14",
-    "scheduled_minutes": 240,
-    "completed_minutes": 205,
-    "treatment_status": "completed_early",
-    "synthetic_observation": "Treatment ended early after a fictional symptomatic event."
-  },
-  "clinical_documentation": [
+  "clinical_treatments": [
     {
-      "note_type": "treatment_note",
-      "author_role": "synthetic_clinician",
-      "text": "Synthetic note: treatment ended early; fictional symptoms were addressed and the patient was stable at discharge."
-    },
-    {
-      "note_type": "provider_follow_up",
-      "author_role": "synthetic_provider",
-      "text": "Synthetic note: follow-up plan documented for the next treatment."
+      "treatment_date": "2026-01-14",
+      "scheduled_minutes": 240,
+      "completed_minutes": 205,
+      "status": "completed_early",
+      "treatment_note": "Synthetic note: treatment ended early; fictional symptoms were addressed and the patient was stable at discharge.",
+      "follow_up_note": "Synthetic note: follow-up plan documented for the next treatment."
     }
-  ],
-  "audit_context": {
-    "review_scope": "synthetic documentation completeness review",
-    "ruleset_version": "synthetic-v1",
-    "human_reviewer_required": true
-  }
+  ]
 }

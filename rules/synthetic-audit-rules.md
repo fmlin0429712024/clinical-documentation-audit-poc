@@ -4,9 +4,9 @@
 
 | Rule ID | Synthetic trigger | Required evidence to draft a finding | Agent output | Human decision |
 | --- | --- | --- | --- | --- |
-| SYN-ICHD-01 | Treatment completed materially earlier than scheduled | Treatment duration and a relevant documentation note | Ask whether the reason and disposition are documented | Confirm, reject, or request clarification |
-| SYN-ICHD-02 | A fictional symptom/event is mentioned | Source note and an associated assessment or follow-up statement | Identify missing evidence, if any | Confirm clinical relevance |
-| SYN-ICHD-03 | Follow-up is referenced | Follow-up plan, owner, and timing when documented | Flag an evidence gap only | Decide whether action is needed |
+| SYN-ICHD-01 | A `clinical_treatments[]` item completed materially earlier than scheduled | Treatment duration and `treatment_note` | Ask whether the reason and disposition are documented | Confirm, reject, or request clarification |
+| SYN-ICHD-02 | A fictional symptom/event is mentioned in `treatment_note` | `treatment_note` and `follow_up_note` | Identify missing evidence, if any | Confirm clinical relevance |
+| SYN-ICHD-03 | `follow_up_note` is present | Follow-up statement when documented | Flag an evidence gap only | Decide whether action is needed |
 
 ## Guardrails
 
