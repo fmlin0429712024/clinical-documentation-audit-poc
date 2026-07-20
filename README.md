@@ -1,4 +1,4 @@
-# Healthcare Agentic AI POC — Clinical Documentation Audit
+#  In-center hemodialysis (ICHD) Clinical Documentation Audit
 
 > **Synthetic demonstration only.** Every patient, encounter, treatment, note, audit rule, evidence item, and finding in this repository is fictional mock data. This POC contains no client data, proprietary logic, production code, or client deliverables.
 
