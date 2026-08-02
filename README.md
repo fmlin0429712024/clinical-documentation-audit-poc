@@ -4,7 +4,16 @@
 
 ## Purpose
 
-This POC demonstrates a governed, workflow-first AI approach to clinical documentation audit for a single modality: **in-center hemodialysis (ICHD)**. It turns a synthetic patient record into traceable audit findings for human review.
+**A governed, workflow-first AI approach to clinical documentation audit for
+in-center hemodialysis (ICHD)** — reconstructing, on fully synthetic data, the
+architecture behind clinical documentation audit work I led at DaVita. It
+turns a synthetic patient record into traceable audit findings for human
+review.
+
+Documentation audit findings drive coding, quality reporting, and downstream
+compliance decisions — an unreviewed AI finding is not acceptable, so the
+workflow is built around evidence normalization and rule evaluation feeding a
+**human review gate**, not an autonomous decision.
 
 It is an architectural communication artifact, not a clinical decision system and not a production implementation.
 
