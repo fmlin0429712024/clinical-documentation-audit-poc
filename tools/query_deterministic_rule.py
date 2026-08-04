@@ -97,7 +97,7 @@ def main() -> None:
         help=(
             "SOP store to query. Defaults to data/audit_rules.db (the "
             "original, shared store — Phase 1 and Phase 2 both rely on its "
-            "exact rule set, so it's never extended). Phase 3.5's "
+            "exact rule set, so it's never extended). Phase 1.5's "
             "patient-domain deterministic rules live in a separate store, "
             "data/audit_rules-multi-domain.db, passed explicitly here."
         ),

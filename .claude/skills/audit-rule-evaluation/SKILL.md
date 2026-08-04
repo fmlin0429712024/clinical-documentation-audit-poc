@@ -22,14 +22,21 @@ traceable finding from the result.
    `documentation-evidence-review`.
 2. Check the rule's Method column:
    - **deterministic** — do not judge the trigger yourself.
-     - Auditing a whole patient (all treatments, all deterministic rules)?
-       Run the `deterministic-rule-audit` skill — it owns the loop.
-     - Checking a single rule against a single treatment? Extract that
-       treatment as JSON and run
+     - Auditing a whole patient (all treatments, all deterministic rules,
+       plus the one patient-level check when the multi-domain gold set is
+       in use)? Run the `deterministic-rule-audit` skill — it owns the
+       loop.
+     - Checking a single treatment-domain rule (`SYN-ICHD-01`/`09`)
+       against a single treatment? Extract that treatment as JSON and run
        `python3 tools/query_deterministic_rule.py <rule_id> -` (piping the
-       treatment JSON on stdin) directly.
-     Either way the result comes from `data/audit_rules.db` via the tool —
-     report it verbatim.
+       treatment JSON on stdin) directly — the result comes from
+       `data/audit_rules.db`, the default store.
+     - Checking the single patient-domain rule (`SYN-ICHD-06`)? Same tool,
+       but it is **not** in the default store — pass
+       `--db data/audit_rules-multi-domain.db` explicitly, e.g.
+       `python3 tools/query_deterministic_rule.py SYN-ICHD-06 - --db data/audit_rules-multi-domain.db`
+       (see that rule's row in `rules/synthetic-audit-rules.md`).
+     Either way, report the tool's result verbatim.
    - **non-deterministic** — apply judgment against the cited evidence and
      the rule's narrative use-case description, using whichever skill owns
      that rule's Domain. For `SYN-ICHD-04` (treatment), run the

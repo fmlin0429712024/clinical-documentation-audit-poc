@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Phase 3.5 tests for the patient-domain deterministic rule (SYN-ICHD-06).
+"""Phase 1.5 tests for the patient-domain deterministic rule (SYN-ICHD-06).
 
 Separate file from test_query_deterministic_rule.py on purpose: that file
 is Phase 1's frozen regression suite, pinned to the original two-rule

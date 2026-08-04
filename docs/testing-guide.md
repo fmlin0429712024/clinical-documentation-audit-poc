@@ -147,6 +147,25 @@ the next treatment, follow-up, and physician notification all flagged as
 `evidence_gap`. The treatment cross-referenced (`2026-03-18`) is
 deliberately silent on the change — that silence is the point of the test.
 
+**3. `SYN-ICHD-06` — patient-domain deterministic, zero LLM**
+
+```bash
+python3 -m unittest discover -s tools -p "test_*.py" -v
+```
+
+Expect the 5 `SynIchd06SparseNursingNotes`/`OriginalStoreUnaffected` tests
+to pass alongside the original 10. To see it resolved through the skill
+layer instead of the raw test file:
+
+> Use the `deterministic-rule-audit` skill to audit the patient in
+> `data/synthetic-ichd-patient-goldset-multi-domain.json`, including the
+> patient-domain check (`SYN-ICHD-06`).
+
+This fixture's `patient.nursing_notes` has 2 entries — below the
+illustrative threshold of 3 — so expect `SYN-ICHD-06` to **trigger**,
+resolved via `--db data/audit_rules-multi-domain.db`, verbatim from the
+tool, same zero-judgment guarantee as `SYN-ICHD-01`/`09`.
+
 ## Both tracks together
 
 Testing each track alone tells you the skill itself works. Testing them
@@ -208,9 +227,11 @@ not something to silently accept.
 Expect all of Track A/B's results on the first five (unchanged, verbatim
 copies of the original treatments) *plus* `SYN-ICHD-05` resolved by
 `patient-continuity-review` for both nursing-note entries — one clean, one
-flagged. This is the end-to-end check that Method+Domain dispatch works
-across all three roles (collaboration, treatment, patient) in one run, not
-just each in isolation.
+flagged — *plus* `SYN-ICHD-06` triggering once at the patient level
+(`nursing_notes_count` = 2, below the threshold of 3). This is the
+end-to-end check that Method+Domain dispatch works across all three roles
+(collaboration, treatment, patient) in one run, not just each in
+isolation.
 
 ## What "passing" means here
 
