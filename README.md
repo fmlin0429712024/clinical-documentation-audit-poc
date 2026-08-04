@@ -91,31 +91,30 @@ Every trigger in this workflow is a fresh, throwaway virtual machine — GitHub 
 
 ```mermaid
 flowchart TD
-    A["Open or update a PR against main"] --> B["Two separate jobs start —<br/>two separate throwaway VMs,<br/>not one machine doing both"]
-
-    B --> C["Job 1: test (Stage A)"]
-    C --> C1["Run Phase 1 + Phase 2 test suites —<br/>fixed code, fixed answers"]
+    A["Open or update a PR against main"] --> B["Job 1: test (Stage A) starts —<br/>its own throwaway VM"]
+    B --> C1["Run Phase 1 + Phase 2 test suites —<br/>fixed code, fixed answers"]
     C1 --> C2{"Every step exited 0?"}
     C2 -->|yes| C3["Check: test — passing"]
     C2 -->|no| C4["Check: test — failing"]
 
-    B --> D["Job 2: claude-review (Stage B)<br/>needs: test — waits for Job 1 to pass first"]
+    C3 --> D["Job 2: claude-review (Stage B) starts —<br/>a second, separate throwaway VM<br/>(needs: test — only runs if test passed)"]
+    C4 -.test failed, needs: test<br/>not satisfied.-> D0["claude-review never runs —<br/>no check result at all for it"]
     D --> D1["Repo checked out onto this VM too —<br/>files just sit on disk, same as git checkout"]
-    D1 --> D2["Reads CLAUDE.md etc. directly;<br/>runs gh pr diff / gh pr view<br/>(scoped Bash access — same gh commands<br/>used throughout this chat)"]
-    D2 --> D3["Judges the diff against this repo's<br/>own guardrails — same reasoning engine<br/>as this conversation, triggered by CI<br/>instead of by you asking"]
+    D1 --> D2["Reads CLAUDE.md etc. directly;<br/>runs gh pr diff / gh pr view<br/>(scoped Bash access — same gh commands<br/>used to inspect these very runs)"]
+    D2 --> D3["Judges the diff against this repo's<br/>own guardrails — same reasoning engine<br/>as an interactive Claude Code session,<br/>triggered by CI instead of a person asking"]
     D3 --> D4["Posts findings: gh pr comment"]
     D4 --> D5["Check: claude-review —<br/>informational only, can't block merging"]
 
-    C3 --> E{"Branch protection:<br/>test passing (required) +<br/>human review required"}
-    C4 --> E
+    C4 --> E{"Branch protection:<br/>test passing (required) +<br/>human review required"}
     D5 --> E
+    D0 --> E
     E -->|human approves and merges| F["main updated →<br/>push trigger reruns test on main itself;<br/>claude-review skips — no PR to review on a plain push"]
 ```
 
 | Stage | What runs | Status |
 | --- | --- | --- |
 | **Stage A — traditional CI** | This repo's existing test suites (Phase 1 + Phase 2), nothing else. No AI anywhere in the loop. **Does it work?** | ✅ Done — [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
-| **Stage B — headless Claude Code review** | A second job (`needs: test`, only on `pull_request` events) where headless Claude Code reads the PR diff against this repo's conventions and posts findings via `gh pr comment` (`anthropics/claude-code-action@v1`). **Does it make sense?** | ✅ Built and verified end-to-end (PRs #3–#5) — informational only for now (not in `main`'s required checks yet), still gated by required human approval to merge either way — see [PRD](docs/prd-github-headless-ci.md) |
+| **Stage B — headless Claude Code review** | A second job (`needs: test`, only on `pull_request` events) where headless Claude Code reads the PR diff against this repo's conventions and posts findings via `gh pr comment` (`anthropics/claude-code-action@v1`). **Does it make sense?** | ✅ Built; verified end-to-end with a real posted review on PR #4 — informational only for now (not in `main`'s required checks yet), still gated by required human approval to merge either way — see [PRD](docs/prd-github-headless-ci.md) Section 8 for the full run-by-run log, including two PRs (#3, #5) where the App's own workflow-validation guard skipped the review because those PRs edited `ci.yml` itself |
 
 Both checks feed into the same single human-approval gate at the bottom (`E`) — Stage B doesn't add a second approval step, it adds a second *input* to the one approval you were already going to make. That gate doesn't go away no matter how many automated checks feed into it; it's the same "human always decides" rule from Phases 1–2, just enforced by GitHub instead of by a skill's Workflow section.
 
