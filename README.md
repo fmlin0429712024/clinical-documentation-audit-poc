@@ -91,27 +91,33 @@ Every trigger in this workflow is a fresh, throwaway virtual machine — GitHub 
 
 ```mermaid
 flowchart TD
-    A["Push a commit, or open/update a PR against main"] --> B["Trigger matches on.pull_request or on.push<br/>(defined in .github/workflows/ci.yml)"]
-    B --> C["GitHub creates a fresh Ubuntu runner —<br/>a throwaway VM, free for public repos"]
-    C --> D["Check out this repo's code onto it"]
-    D --> E["Run Phase 1 tests<br/>(stdlib only, no install step)"]
-    E --> F["Run Phase 2 tests<br/>(uv sync + pytest,<br/>ANTHROPIC_API_KEY from a repo secret)"]
-    F --> G{"Every step exited 0?"}
-    G -->|yes| H["Check marked passing on the PR"]
-    G -->|no| I["Check marked failing on the PR"]
-    H --> J["Runner VM destroyed —<br/>this is the end of its life, every time"]
-    I --> J
-    J -.Stage B, not built yet.-> K["headless Claude Code reviews the diff<br/>and posts its own check"]
-    H --> L{"Branch protection:<br/>check passing + human review required"}
-    L -->|approve and merge| M["main updated →<br/>the push trigger fires CI again, on main itself"]
+    A["Open or update a PR against main"] --> B["Job 1: test (Stage A) starts —<br/>its own throwaway VM"]
+    B --> C1["Run Phase 1 + Phase 2 test suites —<br/>fixed code, fixed answers"]
+    C1 --> C2{"Every step exited 0?"}
+    C2 -->|yes| C3["Check: test — passing"]
+    C2 -->|no| C4["Check: test — failing"]
+
+    C3 --> D["Job 2: claude-review (Stage B) starts —<br/>a second, separate throwaway VM<br/>(needs: test — only runs if test passed)"]
+    C4 -.->|"test failed, needs: test not satisfied"| D0["claude-review is skipped —<br/>never spends an LLM call"]
+    D --> D1["Repo checked out onto this VM too —<br/>files just sit on disk, same as git checkout"]
+    D1 --> D2["Reads CLAUDE.md etc. directly;<br/>runs gh pr diff / gh pr view<br/>(scoped Bash access — same gh commands<br/>used to inspect these very runs)"]
+    D2 --> D3["Judges the diff against this repo's<br/>own guardrails — same reasoning engine<br/>as an interactive Claude Code session,<br/>triggered by CI instead of a person asking"]
+    D3 --> D4["Posts findings: gh pr comment"]
+    D4 --> D5["Check: claude-review —<br/>informational only, can't block merging"]
+
+    C3 --> E{"Branch protection:<br/>test passing (required) +<br/>human review required"}
+    C4 --> E
+    D5 --> E
+    D0 --> E
+    E -->|human approves and merges| F["main updated →<br/>push trigger reruns test on main itself;<br/>claude-review skips — no PR to review on a plain push"]
 ```
 
 | Stage | What runs | Status |
 | --- | --- | --- |
-| **Stage A — traditional CI** | This repo's existing test suites (Phase 1 + Phase 2), nothing else. No AI anywhere in the loop. | ✅ Done — [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
-| **Stage B — headless Claude Code review** | A second job (`needs: test`) where headless Claude Code reads the PR diff against this repo's conventions and posts findings via `gh pr comment` (`anthropics/claude-code-action@v1`) | ✅ Built — informational only for now (not in `main`'s required checks yet), still gated by required human approval to merge either way — see [PRD](docs/prd-github-headless-ci.md) |
+| **Stage A — traditional CI** | This repo's existing test suites (Phase 1 + Phase 2), nothing else. No AI anywhere in the loop. **Does it work?** | ✅ Done — [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
+| **Stage B — headless Claude Code review** | A second job (`needs: test`, only on `pull_request` events) where headless Claude Code reads the PR diff against this repo's conventions and posts findings via `gh pr comment` (`anthropics/claude-code-action@v1`). **Does it make sense?** | ✅ Built; verified end-to-end with a real posted review on PR #4 — informational only for now (not in `main`'s required checks yet), still gated by required human approval to merge either way — see [PRD](docs/prd-github-headless-ci.md) Section 8 for the full run-by-run log, including two PRs (#3, #5) where the App's own workflow-validation guard skipped the review because those PRs edited `ci.yml` itself |
 
-`K` in the diagram is where Stage B would attach — as one more check alongside the test suite, not a replacement for the human-approval gate at `L`. That gate doesn't go away no matter how many automated checks feed into it; it's the same "human always decides" rule from Phases 1–2, just enforced by GitHub instead of by a skill's Workflow section.
+Both checks feed into the same single human-approval gate at the bottom (`E`) — Stage B doesn't add a second approval step, it adds a second *input* to the one approval you were already going to make. That gate doesn't go away no matter how many automated checks feed into it; it's the same "human always decides" rule from Phases 1–2, just enforced by GitHub instead of by a skill's Workflow section.
 
 **A note on what gets tested:** GitHub Actions doesn't inspect *what changed* — the workflow above runs unconditionally on every matching trigger, whether the diff is one line of markdown or every file in `claude-sdk-audit/`. (GitHub Actions does support a `paths:`/`paths-ignore:` filter on the trigger to skip runs for docs-only changes — a real, exam-relevant CI/CD concept — but this repo doesn't use it: the suite runs in well under a minute, so the safety of "always run everything" outweighs the speed gain, and it's one less place to misconfigure.) Interactively, in a Claude Code session, that judgment call is mine, not a built-in feature: editing only `README.md` doesn't touch any file the test suites import, so I skip re-running them locally — the same reasoning CI would need `paths:` to encode, done by hand instead.
 
