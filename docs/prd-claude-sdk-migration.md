@@ -1,6 +1,6 @@
 # PRD: Claude SDK Migration (Part 2)
 
-Status: **Draft v0.1 — under review, nothing built yet**
+Status: **v0.2 — core build done and passing; see Section 12**
 Owner: Forest Lin
 Depends on: Part 1 (`docs/prd-agentic-audit-tracks.md`), concluded and not being re-litigated here.
 Scope: reimplement Part 1's two audit tracks using the Claude/Anthropic Python SDK directly, outside Claude Code. **No GitHub/CI work here** — that's Part 3, and won't be designed until this exists to test against.
@@ -117,9 +117,22 @@ This is the first point in the project with a real external dependency (`anthrop
 
 Same caveat as Part 1's testing guide, worth restating because it applies even harder here: schema-validity is testable and should be asserted (did the API return well-formed JSON matching `FINDING_TOOL`'s schema — yes/no, deterministic to check). Whether the model's *judgment* is correct (did it call `2026-02-04` a 2-gap case) is not something a schema can guarantee — schema enforcement fixes the shape problem, not the accuracy problem. Don't conflate "the output is schema-valid" with "the output is correct" when reporting results.
 
-## 11. Open questions for review
+## 11. Open questions — resolved
 
-1. Confirm the direct-API-calls architecture (Section 4) is what you mean by "Claude SDK" here, not the autonomous Claude Agent SDK loop.
-2. `uv` for dependency management — same tool already available in this environment — okay to use, or prefer plain `pip` + `requirements.txt`?
-3. Where should the hypotension use-case narrative live — duplicated into a Python string, or loaded at runtime from `intradialytic-hypotension-review/SKILL.md` so Part 1 and Part 2 share one source of truth? (Leaning toward loading it — avoids drift — but that couples Part 2 to a Part 1 file path, worth deciding deliberately.)
-4. Model choice for the API calls — pin a specific model, or leave configurable?
+1. **Direct-API architecture confirmed** — Section 4's assumption (a) was correct: plain Python control flow, one manual API call for the judgment task, no autonomous agent loop.
+2. **`uv` confirmed** — used for `claude-sdk-audit/pyproject.toml`, `package = false` (not a distributable library, just a scripts folder with pinned dependencies).
+3. **Resolved: copy, don't share, don't symlink.** The user's explicit direction (different from my original lean toward runtime-loading from the Part 1 file): copy `.claude/skills/*/SKILL.md` verbatim into `claude-sdk-audit/skills/` — decoupled from Part 1's files since the two phases consume the same text through different mechanisms. `data/` and `tools/query_deterministic_rule.py`, by contrast, are referenced via relative path from the new folder, not copied — those are ground truth, not prompt content, and duplicating them risked drift. `nondeterministic.py` loads the *copied* skill's body at runtime (frontmatter stripped via regex), not a Python-string duplicate.
+4. **Model pinned to Haiku** (`claude-haiku-4-5-20251001`) per user's explicit choice — cheapest/fastest, sufficient for this judgment task.
+
+## 12. What got built (v0.2)
+
+All under `claude-sdk-audit/` (own `pyproject.toml`/`uv.lock`, own `README.md`):
+
+- **`deterministic.py`** — pure Python, loops every treatment × every rule via direct import of `tools/query_deterministic_rule.py`. `test_deterministic.py` has 3 tests, including an AST-based check that `anthropic` is never imported in this file — the "zero LLM" guarantee is asserted, not just claimed.
+- **`schemas.py`** — `FINDING_TOOL`, the `input_schema` for a forced tool call (`submit_hypotension_finding`), covering all four judgment points plus `trigger_present`/`draft_question`/`prohibited_inference`.
+- **`nondeterministic.py`** — one live API call per treatment, `tool_choice` forced to `submit_hypotension_finding`. `test_nondeterministic.py` has 2 tests (skipped automatically without a valid key) asserting both schema shape and judgment content.
+- **`run_audit.py`** — orchestrator; Method dispatch (which rules are deterministic vs. not) is a hardcoded Python fact, not re-derived from `rules/synthetic-audit-rules.md` by an LLM.
+
+**Verified against a real `ANTHROPIC_API_KEY`, live, in this session** (key format-checked and auth-tested without ever printing the value): all 5 tests pass. `run_audit.py`'s full output matches Part 1 exactly — 6 deterministic checks (1 trigger, `SYN-ICHD-01` on `2026-01-14`), 3 non-deterministic checks (correctly 0 false-positive on `2026-01-14`, which doesn't actually describe hypotension), 3 total findings routed to human review (1 deterministic + 2 non-deterministic — one clean, one 2-gap, matching Part 1's worked examples verbatim). Captured example outputs live in `claude-sdk-audit/outputs/`.
+
+**Not yet done:** nothing blocking — this satisfies Section 9's success criteria. Not committed/pushed yet, pending user go-ahead (same discipline as Part 1's push).
