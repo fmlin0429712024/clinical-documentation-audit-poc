@@ -18,7 +18,7 @@ Built in four numbered phases, each with its own PRD — this is the map, not th
 | --- | --- | --- |
 | **Phase 1 — Claude Code + Skills** | The two-track audit workflow as Claude Code skills + a SQLite-backed tool | ✅ Done — [PRD](docs/prd-agentic-audit-tracks.md) |
 | **Phase 2 — Claude SDK** | Same workflow, reimplemented as direct Python + Claude API calls — schema-enforced output, code-level determinism guarantee | ✅ Done — [PRD](docs/prd-claude-sdk-migration.md) |
-| **Phase 3 — GitHub + Headless CI** 📍 | Branch → PR → CI (GitHub-hosted runners) → headless Claude Code reviews the diff as evidence → human approves → merge | 🚧 Designing — [PRD](docs/prd-github-headless-ci.md) |
+| **Phase 3 — GitHub + Headless CI** 📍 | Branch → PR → CI (GitHub-hosted runners) → headless Claude Code reviews the diff as evidence → human approves → merge | 🚧 Stage A done (traditional CI), Stage B planned (headless review) — [PRD](docs/prd-github-headless-ci.md) |
 | **Phase 4 — Evaluation Loop** | Capture reviewer feedback (confirm/reject/clarify) and feed it back into rule and prompt design | ⏳ Planned |
 
 ## How Phase 1 Works (Claude Code + Skills)
@@ -84,6 +84,38 @@ The coding structure maps onto Phase 1's skills, but doesn't reuse most of them 
 Five of the six skill markdown files live under `claude-sdk-audit/skills/` (copied, not symlinked, from `.claude/skills/`) purely as reference — nothing in Phase 2's code reads them. Only `intradialytic-hypotension-review/SKILL.md` is an actual runtime dependency. See [`claude-sdk-audit/README.md`](claude-sdk-audit/README.md) for setup and how to run it, and `docs/prd-claude-sdk-migration.md` Section 12 for the full build log.
 
 **Study reference:** [`docs/cheat-sheet.md`](docs/cheat-sheet.md) — every Claude Code / Claude SDK concept this project demonstrates, one line each.
+
+## How Phase 3 Works (GitHub CI/CD)
+
+Every trigger in this workflow is a fresh, throwaway virtual machine — GitHub calls it a "runner." Nothing persists between runs; the same steps happen identically whether it's the 1st run or the 100th.
+
+```mermaid
+flowchart TD
+    A["Push a commit, or open/update a PR against main"] --> B["Trigger matches on.pull_request or on.push<br/>(defined in .github/workflows/ci.yml)"]
+    B --> C["GitHub creates a fresh Ubuntu runner —<br/>a throwaway VM, free for public repos"]
+    C --> D["Check out this repo's code onto it"]
+    D --> E["Run Phase 1 tests<br/>(stdlib only, no install step)"]
+    E --> F["Run Phase 2 tests<br/>(uv sync + pytest,<br/>ANTHROPIC_API_KEY from a repo secret)"]
+    F --> G{"Every step exited 0?"}
+    G -->|yes| H["Check marked passing on the PR"]
+    G -->|no| I["Check marked failing on the PR"]
+    H --> J["Runner VM destroyed —<br/>this is the end of its life, every time"]
+    I --> J
+    J -.Stage B, not built yet.-> K["headless Claude Code reviews the diff<br/>and posts its own check"]
+    H --> L{"Branch protection:<br/>check passing + human review required"}
+    L -->|approve and merge| M["main updated →<br/>the push trigger fires CI again, on main itself"]
+```
+
+| Stage | What runs | Status |
+| --- | --- | --- |
+| **Stage A — traditional CI** | This repo's existing test suites (Phase 1 + Phase 2), nothing else. No AI anywhere in the loop. | ✅ Done — [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
+| **Stage B — headless Claude Code review** | An additional automated check where Claude Code itself reads the diff and posts findings as its own status (`anthropics/claude-code-action@v1`), still gated by required human approval to merge | ⏳ Planned — see [PRD](docs/prd-github-headless-ci.md) |
+
+`K` in the diagram is where Stage B would attach — as one more check alongside the test suite, not a replacement for the human-approval gate at `L`. That gate doesn't go away no matter how many automated checks feed into it; it's the same "human always decides" rule from Phases 1–2, just enforced by GitHub instead of by a skill's Workflow section.
+
+**A note on what gets tested:** GitHub Actions doesn't inspect *what changed* — the workflow above runs unconditionally on every matching trigger, whether the diff is one line of markdown or every file in `claude-sdk-audit/`. (GitHub Actions does support a `paths:`/`paths-ignore:` filter on the trigger to skip runs for docs-only changes — a real, exam-relevant CI/CD concept — but this repo doesn't use it: the suite runs in well under a minute, so the safety of "always run everything" outweighs the speed gain, and it's one less place to misconfigure.) Interactively, in a Claude Code session, that judgment call is mine, not a built-in feature: editing only `README.md` doesn't touch any file the test suites import, so I skip re-running them locally — the same reasoning CI would need `paths:` to encode, done by hand instead.
+
+**Try it yourself:** open a PR (or push a commit to a branch with one open) and run `gh run watch` — you'll see the trigger → VM created → steps run → VM destroyed lifecycle above happen in real time, in your own terminal.
 
 ## Repository Map
 
