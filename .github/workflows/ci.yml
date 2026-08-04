@@ -1,14 +1,26 @@
-# CI (Continuous Integration) — Phase 3, Stage A.
+# CI (Continuous Integration) — Phase 3, Stage A + Stage B.
 #
 # What this file does: whenever someone opens or updates a pull request
 # against `main`, GitHub spins up a fresh Ubuntu virtual machine (a
-# "GitHub-hosted runner" — free and unlimited for public repos), runs the
-# steps below on it, then throws the machine away. The pass/fail result
-# shows up as a check directly on the PR page.
+# "GitHub-hosted runner" — free and unlimited for public repos) for EACH
+# job below, runs that job's steps on its own machine, then throws that
+# machine away. `jobs` is GitHub Actions' unit of VM allocation — not
+# `workflows` — so `test` and `claude-review` below get two separate,
+# independently-provisioned, independently-destroyed machines, not one
+# machine reused for both. Each job's pass/fail result shows up as its
+# own separate check directly on the PR page.
 #
-# This is intentionally "traditional" CI — it only runs this repo's
-# existing test suites. No AI review step yet (that's Phase 3 Stage B,
-# deferred — see docs/prd-github-headless-ci.md).
+# - `test` (Stage A) — this repo's existing test suites. No AI, no
+#   judgment — a fixed script either exits 0 or it doesn't.
+# - `claude-review` (Stage B) — headless Claude Code reads the PR diff
+#   and posts its own judgment as a PR comment. It only runs after `test`
+#   succeeds (`needs: test` below) — no point spending an LLM call
+#   reviewing a diff whose tests are already broken. This mirrors the
+#   project's own deterministic-vs-non-deterministic split (see
+#   rules/synthetic-audit-rules.md) one level up: `test` is the
+#   zero-judgment tool-resolved check, `claude-review` is the
+#   judgment-based one reasoning over free text — same shape, applied to
+#   reviewing code instead of reviewing patient documentation.
 
 name: CI
 
@@ -59,3 +71,60 @@ jobs:
           uv run pytest -v
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  claude-review:
+    needs: test
+    runs-on: ubuntu-latest
+    # These three are requested from GitHub for this job specifically —
+    # by default a job gets none of them. `contents: read` lets it check
+    # out code; `pull-requests: write` lets it post the review as a PR
+    # comment (via `gh pr comment` in the allowed-tools list below —
+    # without this permission that command would fail with 403);
+    # `id-token: write` is required by anthropics/claude-code-action@v1
+    # itself (mirrors its own documented example) even for plain API-key
+    # auth like ours.
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      # The official, Anthropic-maintained action for running headless
+      # Claude Code in GitHub Actions. Verified against the action's own
+      # action.yml and docs/solutions.md (not guessed) before writing
+      # this — an earlier draft of this job assumed flags
+      # (--allowedTools Read, --bare, --output-format json) that turned
+      # out not to match the actual current interface.
+      - name: Claude Code reviews the diff
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            Review this pull request against this repo's own conventions,
+            documented in CLAUDE.md. Specifically check:
+
+            - Every new or changed Claude Code skill still follows the
+              Purpose -> Workflow -> Output Contract -> Guardrails shape.
+            - If a skill under .claude/skills/ was touched, its mirror
+              under .agents/skills/ was updated identically (same
+              SKILL.md content in both locations).
+            - No real patient, provider, or client data was introduced —
+              this repo is synthetic/mock data only.
+            - Any new or changed audit rule stays illustrative (not real
+              clinical, coding, or compliance guidance) and any drafted
+              finding is still routed to human review, never presented
+              as a final decision.
+            - Evidence traceability is preserved: claims in a finding
+              cite an actual source field, not an inference.
+
+            The PR branch is already checked out in the current working
+            directory. You are a reviewer only — do not edit any files.
+            Post your findings with `gh pr comment`; if everything looks
+            fine, say so briefly instead of inventing issues.
+          claude_args: |
+            --allowedTools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
