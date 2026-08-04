@@ -12,12 +12,14 @@ This is an architectural communication artifact, not a clinical decision system 
 
 ## Project Roadmap
 
-Built in four numbered phases, each with its own PRD — this is the map, not the detail. **📍 Currently on Phase 3.**
+Built in numbered phases, each with its own PRD — this is the map, not the detail. Phases pair by **implementation substrate**, not by when they were built: `1`↔`1.5` are both Skills; `2`↔`2.5` are both SDK; the `.5` half of each pair is the multi-agent variant of its parent. **📍 Currently on Phase 1.5 and Phase 3, in parallel** (independent tracks — neither blocks the other).
 
 | Phase | What | Status |
 | --- | --- | --- |
-| **Phase 1 — Claude Code + Skills** | The two-track audit workflow as Claude Code skills + a SQLite-backed tool | ✅ Done — [PRD](docs/prd-agentic-audit-tracks.md) |
-| **Phase 2 — Claude SDK** | Same workflow, reimplemented as direct Python + Claude API calls — schema-enforced output, code-level determinism guarantee | ✅ Done — [PRD](docs/prd-claude-sdk-migration.md) |
+| **Phase 1 — Claude Code + Skills** | The two-track audit workflow as Claude Code skills + a SQLite-backed tool. Single flow, no domain split. | ✅ Done — [PRD](docs/prd-agentic-audit-tracks.md) |
+| **Phase 1.5 — Multi-Agent Domain Split (Skills)** 📍 | Same substrate as Phase 1 (Skills only, orchestration is skill instructions, not code) — extended to a patient-domain vs. treatment-domain split plus a collaboration/orchestrator role, all validated inside Claude Code | 🚧 In progress — [PRD](docs/prd-multi-agent-domain-split.md) |
+| **Phase 2 — Claude SDK** | Same Phase 1 workflow, reimplemented as direct Python + Claude API calls — schema-enforced output, code-level determinism guarantee. Single agent, no domain split. | ✅ Done — [PRD](docs/prd-claude-sdk-migration.md) |
+| **Phase 2.5 — Multi-Agent Claude Agent SDK** | Port Phase 1.5's validated 3-role design into a real multi-agent implementation using the Claude Agent SDK, in a new `claude-agent-sdk-audit/` folder — separate-context subagents, not skills | ⏳ Not started — previewed only, [PRD](docs/prd-multi-agent-domain-split.md#9-phase-25-preview-placeholder-only--not-designed-here) §9 |
 | **Phase 3 — GitHub + Headless CI** 📍 | Branch → PR → CI (GitHub-hosted runners) → headless Claude Code reviews the diff as evidence → human approves → merge | 🚧 Stage A + B built (Stage B informational-only, not yet a required check) — [PRD](docs/prd-github-headless-ci.md) |
 | **Phase 4 — Evaluation Loop** | Capture reviewer feedback (confirm/reject/clarify) and feed it back into rule and prompt design | ⏳ Planned |
 
@@ -55,6 +57,40 @@ Six Claude Code skills implement this, each following the same shape (**Purpose 
 `SYN-ICHD-03` (inherited from the original scaffold) is still listed in the rules table but not yet built out to this level — see `rules/synthetic-audit-rules.md` and Phase 1's PRD for the current, honest state of what's finished vs. placeholder.
 
 **Try it yourself:** [`docs/testing-guide.md`](docs/testing-guide.md) has copy-pasteable prompts covering each track alone and both together.
+
+## How Phase 1.5 Works (Multi-Agent Domain Split — Skills)
+
+Same altitude as Phase 1 above — pure Claude Code Skills, no SDK, no native subagents — extended to validate a **patient-domain vs. treatment-domain split** before attempting the same split as a real multi-agent Claude Agent SDK implementation (Phase 2.5, previewed but not built — see the roadmap table). (One exception worth naming: `tools/query_deterministic_rule.py`, already Python since Phase 1, gained a `lt` operator and an optional `--db` flag so the patient domain could get a deterministic rule too — see `SYN-ICHD-06` below. That's extending existing infrastructure, not adding a new mechanism.)
+
+```mermaid
+flowchart TD
+    A["Synthetic gold set"] --> B["clinical-record-normalization<br/>(collaboration)"]
+    B --> C["documentation-evidence-review<br/>(treatment)"]
+    C --> D{"audit-rule-evaluation (collaboration)<br/>dispatch by Method + Domain"}
+    D -->|"treatment, deterministic"| E["deterministic-rule-audit<br/>SYN-ICHD-01 / 09"]
+    D -->|"treatment, non-deterministic"| F["intradialytic-hypotension-review (04)<br/>treatment-refusal-review (02)"]
+    D -->|"patient, non-deterministic"| G["patient-continuity-review<br/>SYN-ICHD-05"]
+    D -->|"patient, deterministic"| J["deterministic-rule-audit<br/>SYN-ICHD-06 (separate SOP store)"]
+    E --> H["Draft finding"]
+    F --> H
+    G --> H
+    J --> H
+    H --> I{"Human review"}
+```
+
+Compare against Phase 1's diagram above: same shape (normalize → evidence → Method fork → finding → human review), one more fork added (Domain) — not a different pipeline, a deepening of the same one.
+
+Every skill now declares a **Domain** (`patient` / `treatment` / `collaboration`) right under its title — this labeling is the literal design contract Phase 2.5 will port into three real Claude Agent SDK subagents. Patient domain now has feature parity with treatment domain — both a deterministic rule (SQLite-backed, zero LLM) and a non-deterministic one (narrative judgment):
+
+| Domain | Skills | Role |
+| --- | --- | --- |
+| **collaboration** | `clinical-record-normalization`, `audit-rule-evaluation`, `clinical-audit-orchestrator` | Sequencing, Method+Domain dispatch, human-review routing — owns no evidence itself |
+| **treatment** | `documentation-evidence-review`, `intradialytic-hypotension-review`, `treatment-refusal-review`, `deterministic-rule-audit` (treatment-domain rules) | `SYN-ICHD-01/02/04/09` — unchanged from Phase 1 |
+| **patient** | [`patient-continuity-review`](.claude/skills/patient-continuity-review/SKILL.md) (new, non-deterministic), `deterministic-rule-audit` (patient-domain check, new) | `SYN-ICHD-05` — nursing-note ↔ treatment continuity judgment. `SYN-ICHD-06` — deterministic, `nursing_notes_count < 3`, resolved against a **separate** SOP store, `data/audit_rules-multi-domain.db` |
+
+`SYN-ICHD-05`/`06` need `patient.nursing_notes`, which only exists in a **new, separate data file**: [`data/synthetic-ichd-patient-goldset-multi-domain.json`](data/synthetic-ichd-patient-goldset-multi-domain.json). The original `data/synthetic-ichd-patient-goldset.json` is untouched on purpose — Phase 2 (`claude-sdk-audit/`) references it by relative path (not a copy), so changing its shape would silently break Phase 2's frozen regression tests. The same isolation applies to `SYN-ICHD-06`'s rule definition: it lives in `data/audit_rules-multi-domain.db`, never added to the shared `data/audit_rules.db` that Phase 2's `deterministic.py` also loops over. See [`docs/prd-multi-agent-domain-split.md`](docs/prd-multi-agent-domain-split.md) for the full design rationale and Section 10 for live test results, run in a real Claude Code session — both non-deterministic rules and both branches of the deterministic one, matched against their worked examples.
+
+**Worked examples:** `SYN-ICHD-05` — [positive](outputs/sample-patient-continuity-finding-positive.md) / [negative](outputs/sample-patient-continuity-finding-negative.md); `SYN-ICHD-06` — [deterministic finding](outputs/sample-patient-continuity-deterministic-finding.md). Same convention as Phase 1's other tracks.
 
 ## How Phase 2 Works (Claude SDK)
 
@@ -127,14 +163,16 @@ Both checks feed into the same single human-approval gate at the bottom (`E`) �
 
 | Location | Contents |
 | --- | --- |
-| [`.claude/skills`](.claude/skills) / [`.agents/skills`](.agents/skills) | Phase 1 skill scaffold (mirrored for Claude Code and Codex) |
-| [`claude-sdk-audit`](claude-sdk-audit) | Phase 2 — self-contained Claude SDK reimplementation (own `pyproject.toml`, own README) |
-| [`data`](data) | Synthetic ICHD patient gold set + SQLite SOP store for deterministic rules (shared by both phases) |
-| [`tools`](tools) | Deterministic rule lookup/evaluation tool (stdlib Python, no dependencies) + its tests (shared by both phases) |
-| [`rules`](rules) | Illustrative, non-production audit rules, tagged deterministic vs. non-deterministic |
-| [`outputs`](outputs) | Example traceable audit findings, positive and negative cases (Phase 1) |
+| [`.claude/skills`](.claude/skills) / [`.agents/skills`](.agents/skills) | Phase 1 + Phase 1.5 skill scaffold, 8 skills (mirrored for Claude Code and Codex), each now tagged with a Domain |
+| [`claude-sdk-audit`](claude-sdk-audit) | Phase 2 — self-contained, single-agent Claude SDK reimplementation (own `pyproject.toml`, own README). Frozen — not extended by Phase 1.5. See below for the naming distinction from the future `claude-agent-sdk-audit/` (Phase 2.5, multi-agent). |
+| [`data`](data) | `synthetic-ichd-patient-goldset.json` — the original gold set, shared by Phase 1 and Phase 2 (Phase 2 references it by path, doesn't copy it — do not change its shape). `synthetic-ichd-patient-goldset-multi-domain.json` — a separate Phase 1.5 fixture adding `patient.nursing_notes`, used only by `patient-continuity-review`. Plus two SQLite SOP stores: `audit_rules.db` (original, shared) and `audit_rules-multi-domain.db` (Phase 1.5, patient-domain only). |
+| [`tools`](tools) | Deterministic rule lookup/evaluation tool (stdlib Python, no dependencies) + its tests (shared by all phases) |
+| [`rules`](rules) | Illustrative, non-production audit rules, tagged by Method (deterministic/non-deterministic) and Domain (treatment/patient) |
+| [`outputs`](outputs) | Example traceable audit findings, positive and negative cases (Phase 1 + Phase 1.5) |
 | [`docs/cheat-sheet.md`](docs/cheat-sheet.md) | One-line-per-point study reference for every concept this project demonstrates |
 | [`docs`](docs) | Safety/governance notes, per-phase PRDs, testing guide |
+
+**A naming note for when Phase 2.5 exists:** `claude-sdk-audit` (Phase 2, single agent, direct API calls) and the future `claude-agent-sdk-audit` (Phase 2.5, multi-agent, real Claude Agent SDK) are one word apart on purpose — the names track the actual architecture difference — but easy to misread at a glance. If you're looking at agent *count*: Phase 2 is one; Phase 2.5 is three (collaboration, patient, treatment) — the same three roles Phase 1.5 already validated at the Skills level.
 
 ## Safety Boundary
 

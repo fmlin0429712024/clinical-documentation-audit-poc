@@ -1,10 +1,14 @@
 ---
 name: audit-rule-evaluation
-description: Apply a synthetic ICHD audit rule to cited evidence and draft a traceable finding — dispatching to deterministic-rule-audit (SQLite-backed) for deterministic rules and to the matching use-case skill (e.g. intradialytic-hypotension-review) for non-deterministic ones. Use as the third pipeline step, after documentation-evidence-review. Never treat outputs as clinical, coding, billing, or compliance decisions.
+description: Apply a synthetic ICHD audit rule to cited evidence and draft a traceable finding — dispatching to deterministic-rule-audit (SQLite-backed) for deterministic rules and to the matching use-case skill (e.g. intradialytic-hypotension-review, patient-continuity-review) for non-deterministic ones, by Domain as well as Method. Use as the third pipeline step, after documentation-evidence-review. Never treat outputs as clinical, coding, billing, or compliance decisions.
 allowed-tools: Read(rules/**) Read(data/**) Skill Bash(python3 tools/query_deterministic_rule.py *)
 ---
 
 # Audit Rule Evaluation
+
+**Domain:** collaboration — this skill doesn't own treatment or patient
+evidence itself; it reads the rule's Method *and* Domain columns and routes
+to whichever skill does.
 
 ## Purpose
 
@@ -27,9 +31,16 @@ traceable finding from the result.
      Either way the result comes from `data/audit_rules.db` via the tool —
      report it verbatim.
    - **non-deterministic** — apply judgment against the cited evidence and
-     the rule's narrative use-case description. For `SYN-ICHD-04`, run the
-     `intradialytic-hypotension-review` skill; for `SYN-ICHD-02`, run the
-     `treatment-refusal-review` skill; either way, don't judge inline.
+     the rule's narrative use-case description, using whichever skill owns
+     that rule's Domain. For `SYN-ICHD-04` (treatment), run the
+     `intradialytic-hypotension-review` skill; for `SYN-ICHD-02`
+     (treatment), run the `treatment-refusal-review` skill; for
+     `SYN-ICHD-05` (patient), run the `patient-continuity-review` skill —
+     which requires `data/synthetic-ichd-patient-goldset-multi-domain.json`,
+     not the original gold set (see that rule's row in
+     `rules/synthetic-audit-rules.md`). Either way, don't judge inline —
+     the dispatched skill owns the full judgment and drafts its own
+     finding.
 3. Draft a finding only when the evidence (or tool result) supports its
    question.
 4. Include trigger, evidence, evidence gaps, and prohibited inferences.

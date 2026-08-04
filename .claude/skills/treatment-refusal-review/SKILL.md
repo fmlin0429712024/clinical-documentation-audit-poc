@@ -7,6 +7,10 @@ disallowed-tools: Bash
 
 # Treatment Refusal Review
 
+**Domain:** treatment — reads a single `clinical_treatments[]` entry's
+`treatment_note`/`follow_up_note`; does not cross-reference other
+treatments or patient-level fields.
+
 ## Purpose
 
 Judge, from free-text treatment notes, whether documentation of a synthetic

@@ -38,14 +38,19 @@ def op_eq(rule: dict, treatment: dict) -> bool:
     return str(treatment[rule["field_a"]]) == str(rule["threshold"])
 
 
+def op_lt(rule: dict, treatment: dict) -> bool:
+    return float(treatment[rule["field_a"]]) < float(rule["threshold"])
+
+
 OPERATORS = {
     "a_minus_b_gte": op_a_minus_b_gte,
     "eq": op_eq,
+    "lt": op_lt,
 }
 
 
-def load_rule(rule_id: str) -> dict:
-    conn = sqlite3.connect(DB_PATH)
+def load_rule(rule_id: str, db_path: Path = DB_PATH) -> dict:
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     row = conn.execute(
         "SELECT * FROM deterministic_rules WHERE rule_id = ?", (rule_id,)
@@ -56,8 +61,8 @@ def load_rule(rule_id: str) -> dict:
     return dict(row)
 
 
-def list_rules() -> list[dict]:
-    conn = sqlite3.connect(DB_PATH)
+def list_rules(db_path: Path = DB_PATH) -> list[dict]:
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     rows = conn.execute("SELECT * FROM deterministic_rules ORDER BY rule_id").fetchall()
     conn.close()
@@ -85,16 +90,28 @@ def main() -> None:
     parser.add_argument("rule_id", nargs="?")
     parser.add_argument("treatment_json", nargs="?", help="Path to treatment JSON, or '-' for stdin")
     parser.add_argument("--list", action="store_true", help="List all deterministic rules and exit")
+    parser.add_argument(
+        "--db",
+        type=Path,
+        default=DB_PATH,
+        help=(
+            "SOP store to query. Defaults to data/audit_rules.db (the "
+            "original, shared store — Phase 1 and Phase 2 both rely on its "
+            "exact rule set, so it's never extended). Phase 3.5's "
+            "patient-domain deterministic rules live in a separate store, "
+            "data/audit_rules-multi-domain.db, passed explicitly here."
+        ),
+    )
     args = parser.parse_args()
 
     if args.list:
-        print(json.dumps(list_rules(), indent=2))
+        print(json.dumps(list_rules(args.db), indent=2))
         return
 
     if not args.rule_id or not args.treatment_json:
         parser.error("rule_id and treatment_json are required unless --list is given")
 
-    rule = load_rule(args.rule_id)
+    rule = load_rule(args.rule_id, args.db)
 
     if args.treatment_json == "-":
         treatment = json.load(sys.stdin)

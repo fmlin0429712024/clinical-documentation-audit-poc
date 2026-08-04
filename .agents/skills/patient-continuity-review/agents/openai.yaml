@@ -1,0 +1,4 @@
+interface:
+  display_name: "Patient Continuity Review"
+  short_description: "Review synthetic ICHD patient-level nursing-note continuity"
+  default_prompt: "Use $patient-continuity-review to review continuity between a synthetic patient-level nursing note and the next relevant treatment record."
