@@ -1,6 +1,6 @@
 # Cheat Sheet: Claude Code Skills vs. Claude SDK
 
-One line per point. Built from Phase 1 (Claude Code + Skills) and Phase 2 (Claude SDK) of this project — see `docs/prd-agentic-audit-tracks.md` and `docs/prd-claude-sdk-migration.md` for the full reasoning behind each line.
+One line per point. Built from Phase 1 (Claude Code + Skills), Phase 2 (Claude SDK), and Phase 3 (GitHub CI/CD) of this project — see `docs/prd-agentic-audit-tracks.md`, `docs/prd-claude-sdk-migration.md`, and `docs/prd-github-headless-ci.md` for the full reasoning behind each line.
 
 ## Three products — don't conflate them
 
@@ -52,6 +52,7 @@ One line per point. Built from Phase 1 (Claude Code + Skills) and Phase 2 (Claud
 - Solo maintainer + "required review" is a real puzzle: GitHub won't let you approve your own PR. Fix is `enforce_admins: false` in branch protection, which lets the repo admin merge via an explicit "bypass rules" action — GitHub visibly flags this as merging without the required approval, which *is* the human-decision moment, just implemented as an admin override instead of a second person clicking Approve.
 - A new job can run unconditionally on every PR (dumb, doesn't look at the diff) or depend on another job via `needs:` (e.g. skip an expensive/slow check if a cheap one already failed) — GitHub Actions itself has no built-in "only run if files X changed" judgment; that's what the separate `paths:`/`paths-ignore:` trigger filter is for, if you want it.
 - A new status check isn't automatically a merge gate — it only blocks merging once explicitly added to branch protection's required-checks list. Adding a job and requiring it to pass are two separate decisions.
+- Trap at the intersection of the two points above: a job skipped entirely by a `paths:` filter reports no status at all (not even a passing one) — if that same job is also a required check, a PR touching none of those paths stays blocked forever, waiting on a status that will never arrive.
 - `anthropics/claude-code-action@v1` needs both an API credential (`ANTHROPIC_API_KEY` secret) *and* the separate Claude GitHub App installed on the repo (github.com/apps/claude) — the credential alone isn't sufficient.
 - That App refuses to act (safely no-ops, doesn't hard-fail) when the triggering workflow file's content doesn't match the target branch's version — the exact situation on any PR that's itself introducing or editing that workflow file. Expected, self-resolving once such a PR merges; a real security control against a malicious PR editing the workflow to exploit the App's trusted credentials, not a bug.
 

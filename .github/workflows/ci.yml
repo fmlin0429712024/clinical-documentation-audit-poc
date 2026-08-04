@@ -75,6 +75,13 @@ jobs:
   claude-review:
     needs: test
     runs-on: ubuntu-latest
+    # This job only makes sense for a pull_request event — it reviews a
+    # PR's diff (github.event.pull_request.number) and posts a comment
+    # on it. Without this guard it also tries to run on a plain `push`
+    # to main (e.g. the merge commit itself) where there's no PR at
+    # all, and fails with "Unsupported event type: push" — caught by
+    # watching a real push-to-main run, not assumed away.
+    if: github.event_name == 'pull_request'
     # These three are requested from GitHub for this job specifically —
     # by default a job gets none of them. `contents: read` lets it check
     # out code; `pull-requests: write` lets it post the review as a PR
