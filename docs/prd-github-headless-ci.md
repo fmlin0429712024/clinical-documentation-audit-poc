@@ -101,4 +101,11 @@ Installed and authenticated (Section 6, item 5) — branch protection and the re
 
 ## 7. Stage A build log
 
-Filled in as Stage A is actually built — see the repo's commit history and PR for the concrete artifacts (workflow file, branch protection config, the treatment-refusal-review use case).
+Built on `feature/treatment-refusal-review`, opened as [PR #1](https://github.com/fmlin0429712024/clinical-documentation-audit-poc/pull/1):
+
+- `treatment-refusal-review` use case (skill + rules table + gold-set data + worked examples + both test suites updated) — see the PR diff.
+- `.github/workflows/ci.yml` — traditional CI, no AI review step. Heavily commented since this is a first GitHub Actions workflow.
+- `ANTHROPIC_API_KEY` set as a repo-level Actions secret via `gh secret set` (value piped directly from the local `.env`, never printed).
+- Branch protection on `main` via `gh api`: requires the `test` status check to pass, requires 1 approving review, `enforce_admins: false`. **Solo-maintainer nuance worth remembering**: GitHub does not allow self-approval of your own PR, so a strict "required review" would lock a solo maintainer out entirely. `enforce_admins: false` lets the repo admin (owner) merge anyway after reviewing the CI evidence — GitHub shows a visible "merging without required approval" warning when this happens, which *is* the human-decision moment, just implemented as an admin override rather than a second person clicking Approve.
+- **First real CI run passed**: `test` check green in 17s. Verified via the run log (not just the checkmark) that both suites actually executed — Phase 1: `Ran 10 tests ... OK`; Phase 2: `5 passed in 7.93s`, meaning the two live-API tests really ran against the real key, not silently skipped.
+- **Not yet done**: the actual merge — held for the user to review and decide, deliberately not done by Claude (see Section 1's thesis).
