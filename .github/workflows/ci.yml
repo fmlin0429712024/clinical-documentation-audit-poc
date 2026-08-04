@@ -48,9 +48,13 @@ jobs:
         with:
           python-version: '3.12'
 
-      # Phase 1: stdlib-only, no install step needed.
-      - name: Run Phase 1 tests (deterministic tool)
-        run: python3 tools/test_query_deterministic_rule.py -v
+      # Phase 1 + Phase 1.5: stdlib-only, no install step needed.
+      # Auto-discovery (not a hardcoded filename) on purpose: any file
+      # matching tools/test_*.py runs automatically, so a future new test
+      # file (like Phase 1.5's test_query_deterministic_rule_patient_domain.py
+      # was) can never silently miss being wired into CI.
+      - name: Run Phase 1 + Phase 1.5 tests (deterministic tools)
+        run: python3 -m unittest discover -s tools -p "test_*.py" -v
 
       # Phase 2 uses uv for its own isolated dependencies (anthropic,
       # python-dotenv, pytest) — this installs the uv tool itself.
