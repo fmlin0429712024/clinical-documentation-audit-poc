@@ -18,7 +18,7 @@ Built in four numbered phases, each with its own PRD — this is the map, not th
 | --- | --- | --- |
 | **Phase 1 — Claude Code + Skills** | The two-track audit workflow as Claude Code skills + a SQLite-backed tool | ✅ Done — [PRD](docs/prd-agentic-audit-tracks.md) |
 | **Phase 2 — Claude SDK** | Same workflow, reimplemented as direct Python + Claude API calls — schema-enforced output, code-level determinism guarantee | ✅ Done — [PRD](docs/prd-claude-sdk-migration.md) |
-| **Phase 3 — GitHub + Headless CI** 📍 | Branch → PR → CI (GitHub-hosted runners) → headless Claude Code reviews the diff as evidence → human approves → merge | 🚧 Stage A done (traditional CI), Stage B planned (headless review) — [PRD](docs/prd-github-headless-ci.md) |
+| **Phase 3 — GitHub + Headless CI** 📍 | Branch → PR → CI (GitHub-hosted runners) → headless Claude Code reviews the diff as evidence → human approves → merge | 🚧 Stage A + B built (Stage B informational-only, not yet a required check) — [PRD](docs/prd-github-headless-ci.md) |
 | **Phase 4 — Evaluation Loop** | Capture reviewer feedback (confirm/reject/clarify) and feed it back into rule and prompt design | ⏳ Planned |
 
 ## How Phase 1 Works (Claude Code + Skills)
@@ -109,7 +109,7 @@ flowchart TD
 | Stage | What runs | Status |
 | --- | --- | --- |
 | **Stage A — traditional CI** | This repo's existing test suites (Phase 1 + Phase 2), nothing else. No AI anywhere in the loop. | ✅ Done — [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
-| **Stage B — headless Claude Code review** | An additional automated check where Claude Code itself reads the diff and posts findings as its own status (`anthropics/claude-code-action@v1`), still gated by required human approval to merge | ⏳ Planned — see [PRD](docs/prd-github-headless-ci.md) |
+| **Stage B — headless Claude Code review** | A second job (`needs: test`) where headless Claude Code reads the PR diff against this repo's conventions and posts findings via `gh pr comment` (`anthropics/claude-code-action@v1`) | ✅ Built — informational only for now (not in `main`'s required checks yet), still gated by required human approval to merge either way — see [PRD](docs/prd-github-headless-ci.md) |
 
 `K` in the diagram is where Stage B would attach — as one more check alongside the test suite, not a replacement for the human-approval gate at `L`. That gate doesn't go away no matter how many automated checks feed into it; it's the same "human always decides" rule from Phases 1–2, just enforced by GitHub instead of by a skill's Workflow section.
 

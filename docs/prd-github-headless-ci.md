@@ -1,6 +1,6 @@
 # PRD: GitHub + Headless CI (Phase 3)
 
-Status: **v0.2 — Stage A (traditional CI) in progress; Stage B deferred**
+Status: **v0.3 — Stage A done; Stage B built (informational-only check, not yet required in branch protection)**
 Owner: Forest Lin
 Depends on: Phase 1 (`docs/prd-agentic-audit-tracks.md`) and Phase 2 (`docs/prd-claude-sdk-migration.md`), both concluded.
 Scope: branch/PR workflow, GitHub Actions CI, branch protection gating merge on a passing check + human approval. **No self-hosted VM** — decided against (see Section 3). No auto-merge.
@@ -8,7 +8,7 @@ Scope: branch/PR workflow, GitHub Actions CI, branch protection gating merge on 
 ## 0. Two stages (added after user feedback: CI/CD itself is new to them)
 
 - **Stage A (this build pass)** — traditional CI only: a GitHub Actions workflow that runs both test suites, branch protection requiring it to pass plus a human approval. **No headless Claude Code involved at all.** The point is to learn the plain mechanics — branch, PR, status check, gated merge — without an AI-review layer complicating the first pass.
-- **Stage B (deferred, not this build pass)** — add a second job using headless Claude Code (`anthropics/claude-code-action@v1`) to review each PR's diff and post findings as evidence, once Stage A is comfortable. Section 4.1 below documents the verified mechanics for when that happens, but nothing in it is being built right now.
+- **Stage B (built — see Section 8)** — a second job using headless Claude Code (`anthropics/claude-code-action@v1`) reviews each PR's diff against this repo's own conventions and posts findings as a PR comment. Section 4.1's mechanics were superseded once actually verified against the action's real current interface — see Section 8 for what changed and why.
 
 ## 1. Purpose
 
@@ -30,7 +30,9 @@ Practice the standard branch → PR → CI → gated-merge flow, and extend this
 
 ## 4. Design
 
-### 4.1 Headless Claude Code in CI — verified mechanics
+### 4.1 Headless Claude Code in CI — original research (superseded, see Section 8)
+
+> **This section turned out to be wrong in places.** It's kept as-written for the record — see Section 8 for what a direct check of the action's actual `action.yml` and `docs/solutions.md` found instead, and why "verified via docs" the first time still wasn't enough.
 
 Confirmed via Anthropic's docs (not guessed):
 
@@ -109,3 +111,18 @@ Built on `feature/treatment-refusal-review`, opened as [PR #1](https://github.co
 - Branch protection on `main` via `gh api`: requires the `test` status check to pass, requires 1 approving review, `enforce_admins: false`. **Solo-maintainer nuance worth remembering**: GitHub does not allow self-approval of your own PR, so a strict "required review" would lock a solo maintainer out entirely. `enforce_admins: false` lets the repo admin (owner) merge anyway after reviewing the CI evidence — GitHub shows a visible "merging without required approval" warning when this happens, which *is* the human-decision moment, just implemented as an admin override rather than a second person clicking Approve.
 - **First real CI run passed**: `test` check green in 17s. Verified via the run log (not just the checkmark) that both suites actually executed — Phase 1: `Ran 10 tests ... OK`; Phase 2: `5 passed in 7.93s`, meaning the two live-API tests really ran against the real key, not silently skipped.
 - **Not yet done**: the actual merge — held for the user to review and decide, deliberately not done by Claude (see Section 1's thesis).
+
+## 8. Stage B build log
+
+Before writing the `claude-review` job, re-verified `anthropics/claude-code-action@v1`'s actual interface directly against its source (`gh api repos/anthropics/claude-code-action/contents/action.yml` and `docs/solutions.md`), rather than trusting Section 4.1's earlier research or a research subagent's summary of it. Worth recording exactly what that check overturned, since it's a real example of this project's own "AI drafts, don't trust it blind" thesis catching a mistake in its own supporting research:
+
+- **Wrong**: Section 4.1's `--allowedTools Read`, `--bare`, `--output-format json`, `--max-turns 5`. None of these appear in the action's current documented usage.
+- **Right** (per `docs/solutions.md`'s "Automatic PR Code Review" example): the tool restriction is a scoped `Bash` allowlist — `Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)` — not a blanket `Read`-only mode. This job needs to *post* a comment, not just read files, so plain `Read` wouldn't even be enough; "read-only" here means "cannot edit repository files," not "cannot run any command."
+- **Missing entirely from Section 4.1**: the job-level `permissions:` block. The action needs `contents: read` (checkout), `pull-requests: write` (post the comment), and `id-token: write` (required by the action itself, per its own example, even for plain API-key auth).
+
+Built on a new branch (`feature/stage-b-headless-review`), added as a second job in the existing `.github/workflows/ci.yml`:
+
+- `claude-review` runs only after `test` succeeds (`needs: test`) — fail-fast, and mirrors this project's own deterministic-then-non-deterministic ordering.
+- Prompt is scoped to this repo's actual guardrails (skill template shape, `.claude`/`.agents` mirror sync, synthetic-data-only, `requires_human_review` preservation, evidence traceability) rather than a generic "review this code" prompt.
+- Reviewer only — no file-editing tools granted; findings post via `gh pr comment`.
+- **Decided with the user**: `claude-review` is *not* added to `main`'s required status checks for this first pass — it runs and posts its findings, but a failed or slow run can't block a merge. Revisit once its output has been observed a few times and trusted. `test` and the 1-approval requirement remain the only required gates.
