@@ -30,23 +30,42 @@ def run_tool(rule_id: str, treatment: dict) -> dict:
     return json.loads(result.stdout)
 
 
+def _treatment_by_date(date: str) -> dict:
+    gold_set = json.loads(GOLD_SET.read_text())
+    for treatment in gold_set["clinical_treatments"]:
+        if treatment["treatment_date"] == date:
+            return treatment
+    raise AssertionError(f"no treatment dated {date} in the gold set")
+
+
 class SynIchd01EarlyTermination(unittest.TestCase):
     def test_positive_gold_set_record_triggers(self):
-        gold_set = json.loads(GOLD_SET.read_text())
-        treatment = gold_set["clinical_treatments"][0]  # 205 of 240 min — 35 min short
+        treatment = _treatment_by_date("2026-01-14")  # 205 of 240 min — 35 min short
         result = run_tool("SYN-ICHD-01", treatment)
         self.assertTrue(result["triggered"])
         self.assertEqual(result["status"], "requires_human_review")
         self.assertIsNotNone(result["draft_question"])
 
-    def test_negative_gold_set_records_do_not_trigger(self):
-        gold_set = json.loads(GOLD_SET.read_text())
-        for treatment in gold_set["clinical_treatments"][1:]:  # both new on-time records
-            with self.subTest(date=treatment["treatment_date"]):
-                result = run_tool("SYN-ICHD-01", treatment)
+    def test_hypotension_records_do_not_trigger(self):
+        # These two isolate the non-deterministic hypotension judgment as
+        # the only variable — both are deterministic-clean on purpose.
+        for date in ("2026-01-28", "2026-02-04"):
+            with self.subTest(date=date):
+                result = run_tool("SYN-ICHD-01", _treatment_by_date(date))
                 self.assertFalse(result["triggered"])
                 self.assertEqual(result["status"], "no_finding")
                 self.assertIsNone(result["draft_question"])
+
+    def test_treatment_refusal_records_also_trigger(self):
+        # Refusing/discontinuing treatment naturally cuts it short, so
+        # these two deliberately trigger SYN-ICHD-01 as well as the
+        # non-deterministic SYN-ICHD-02 judgment -- proving combined
+        # dispatch works on a second, independent pair of records.
+        for date in ("2026-02-11", "2026-02-18"):
+            with self.subTest(date=date):
+                result = run_tool("SYN-ICHD-01", _treatment_by_date(date))
+                self.assertTrue(result["triggered"])
+                self.assertEqual(result["status"], "requires_human_review")
 
     def test_exactly_at_threshold_triggers(self):
         treatment = {"scheduled_minutes": 240, "completed_minutes": 225}  # 15 min short

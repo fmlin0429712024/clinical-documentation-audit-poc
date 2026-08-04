@@ -48,6 +48,8 @@ Swap `clinical_treatments[0]` for `[1]` or `[2]` and compare `"triggered"`:
 | `[0]` | 2026-01-14 | `true` (35 min short) |
 | `[1]` | 2026-01-28 | `false` (4 min short) |
 | `[2]` | 2026-02-04 | `false` (2 min short) |
+| `[3]` | 2026-02-11 | `true` (75 min short — treatment refused) |
+| `[4]` | 2026-02-18 | `true` (80 min short — treatment refused) |
 
 The tool only ever checks one rule against one treatment — it does not
 loop. To audit the whole patient (every treatment × every deterministic
@@ -58,11 +60,11 @@ rule), the loop is agent behavior, invoked through a skill:
 > deterministic rule. Show every (rule, treatment) pair it checked, not just
 > the ones that triggered.
 
-Expect 6 pairs checked (2 rules × 3 treatments), 1 triggered (`SYN-ICHD-01`
-on the `2026-01-14` treatment), 5 not — and each verdict traceable to a
-`tools/query_deterministic_rule.py` call, not to the model's own reasoning.
-If you watch the transcript, you should see the tool actually invoked 6
-times.
+Expect 10 pairs checked (2 rules × 5 treatments), 3 triggered — `SYN-ICHD-01`
+on `2026-01-14`, `2026-02-11`, and `2026-02-18` — 7 not, and each verdict
+traceable to a `tools/query_deterministic_rule.py` call, not to the
+model's own reasoning. If you watch the transcript, you should see the
+tool actually invoked 10 times.
 
 ## Track B — non-deterministic (run the skill yourself)
 
@@ -89,6 +91,28 @@ Compare against [`outputs/sample-hypotension-finding-positive.md`](../outputs/sa
 Compare against [`outputs/sample-hypotension-finding-negative.md`](../outputs/sample-hypotension-finding-negative.md)
 — expect reassessment and physician notification flagged as `evidence_gap`.
 
+**3. Treatment refusal, positive case — expect a clean finding**
+
+> Use the `treatment-refusal-review` skill to review the treatment dated
+> `2026-02-11` in `data/synthetic-ichd-patient-goldset.json` for rule
+> `SYN-ICHD-02`. Show the four judgment points and the draft finding.
+
+Compare against [`outputs/sample-treatment-refusal-finding-positive.md`](../outputs/sample-treatment-refusal-finding-positive.md)
+— expect all four points `documented`. Note this treatment also triggers
+`SYN-ICHD-01` deterministically (75 min short) — a real, independently-
+designed second example of combined dispatch, not the same one reused.
+
+**4. Treatment refusal, negative case — expect three evidence gaps**
+
+> Use the `treatment-refusal-review` skill to review the treatment dated
+> `2026-02-18` in `data/synthetic-ichd-patient-goldset.json` for rule
+> `SYN-ICHD-02`. Show the four judgment points and the draft finding.
+
+Compare against [`outputs/sample-treatment-refusal-finding-negative.md`](../outputs/sample-treatment-refusal-finding-negative.md)
+— expect only "refusal recognized" as `documented`; risk discussion,
+physician notification, and the follow-up plan all flagged as
+`evidence_gap`.
+
 ## Both tracks together
 
 Testing each track alone tells you the skill itself works. Testing them
@@ -114,15 +138,27 @@ sharpening in `audit-rule-evaluation/SKILL.md`.
 **2. Full pipeline, full orchestrator, all treatments**
 
 > Use the `clinical-audit-orchestrator` skill to run the full audit
-> workflow across all three treatments in the gold set, covering both
+> workflow across all five treatments in the gold set, covering both
 > deterministic and non-deterministic rules. Show each stage's output.
 
 Expect: normalization → evidence review → dispatch → both tracks resolved
-per treatment → everything routed to `requires_human_review`. Across all
-three treatments this should surface exactly 2 findings worth a human's
-attention — the `2026-01-14` early-termination finding (deterministic) and
-the `2026-02-04` hypotension documentation-gap finding (non-deterministic)
-— with the `2026-01-28` treatment coming back clean on both tracks.
+per treatment → everything routed to `requires_human_review`. Per record:
+
+| Date | `SYN-ICHD-01` (deterministic) | Non-deterministic |
+| --- | --- | --- |
+| `2026-01-14` | triggers (35 min short) | ambiguous — see note below |
+| `2026-01-28` | clean | `SYN-ICHD-04` clean |
+| `2026-02-04` | clean | `SYN-ICHD-04` flags 2 gaps |
+| `2026-02-11` | triggers (75 min short — refused) | `SYN-ICHD-02` clean |
+| `2026-02-18` | triggers (80 min short — refused) | `SYN-ICHD-02` flags 3 gaps |
+
+**A genuine edge case worth watching:** `2026-01-14`'s note ("treatment
+ended early; fictional symptoms were addressed") predates the
+`treatment-refusal-review` skill and doesn't explicitly describe a
+refusal. Whether the skill also fires `SYN-ICHD-02` on this vague wording
+is a good real test of whether it over-triggers on ambiguous language —
+if it does, that's a signal to sharpen the skill's use-case description,
+not something to silently accept.
 
 ## What "passing" means here
 

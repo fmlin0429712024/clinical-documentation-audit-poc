@@ -22,12 +22,22 @@ def test_audits_every_rule_against_every_treatment():
     assert len(results) == expected_pairs
 
 
-def test_exactly_one_trigger_in_the_real_gold_set():
+def test_expected_triggers_in_the_real_gold_set():
     results = audit_deterministic()
-    triggered = [r for r in results if r["triggered"] is True]
-    assert len(triggered) == 1
-    assert triggered[0]["rule_id"] == "SYN-ICHD-01"
-    assert triggered[0]["treatment_date"] == "2026-01-14"
+    triggered = {
+        (r["treatment_date"], r["rule_id"])
+        for r in results
+        if r["triggered"] is True
+    }
+    # 2026-01-14: early-termination example. 2026-02-11/18: treatment
+    # refused/discontinued, which naturally cuts the treatment short too --
+    # deliberately triggers SYN-ICHD-01 alongside the non-deterministic
+    # SYN-ICHD-02 judgment on the same records.
+    assert triggered == {
+        ("2026-01-14", "SYN-ICHD-01"),
+        ("2026-02-11", "SYN-ICHD-01"),
+        ("2026-02-18", "SYN-ICHD-01"),
+    }
 
 
 def test_no_anthropic_import_in_this_module():

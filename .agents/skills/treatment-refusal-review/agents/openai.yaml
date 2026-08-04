@@ -1,0 +1,4 @@
+interface:
+  display_name: "Treatment Refusal Review"
+  short_description: "Review synthetic ICHD treatment-refusal documentation"
+  default_prompt: "Use $treatment-refusal-review to review documentation of a synthetic patient treatment-refusal event."

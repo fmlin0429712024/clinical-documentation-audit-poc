@@ -31,6 +31,22 @@
       "status": "completed",
       "treatment_note": "Synthetic note: at approximately 100 minutes into treatment, patient reported dizziness and blood pressure was recorded as low. Ultrafiltration rate was reduced.",
       "follow_up_note": "Synthetic note: patient monitored for the remainder of treatment."
+    },
+    {
+      "treatment_date": "2026-02-11",
+      "scheduled_minutes": 240,
+      "completed_minutes": 165,
+      "status": "completed_early",
+      "treatment_note": "Synthetic note: at approximately 165 minutes into treatment, patient stated they wanted to stop treatment and requested removal from dialysis, citing discomfort. Nurse discussed the risks of discontinuing treatment early with the patient, including potential complications, and offered to adjust comfort measures. Patient continued to decline further treatment. Physician was notified of the refusal by phone.",
+      "follow_up_note": "Synthetic note: patient remained in the unit for observation for 30 minutes after discontinuation; vital signs reassessed and stable prior to discharge home with standard post-treatment instructions and follow-up scheduled for the next session."
+    },
+    {
+      "treatment_date": "2026-02-18",
+      "scheduled_minutes": 240,
+      "completed_minutes": 160,
+      "status": "completed_early",
+      "treatment_note": "Synthetic note: at approximately 160 minutes into treatment, patient stated they wanted to stop treatment, citing anxiety. Patient continued to decline further treatment despite staff presence.",
+      "follow_up_note": "Synthetic note: patient left the unit shortly after discontinuation."
     }
   ]
 }

@@ -28,7 +28,8 @@ traceable finding from the result.
      report it verbatim.
    - **non-deterministic** — apply judgment against the cited evidence and
      the rule's narrative use-case description. For `SYN-ICHD-04`, run the
-     `intradialytic-hypotension-review` skill instead of judging inline.
+     `intradialytic-hypotension-review` skill; for `SYN-ICHD-02`, run the
+     `treatment-refusal-review` skill; either way, don't judge inline.
 3. Draft a finding only when the evidence (or tool result) supports its
    question.
 4. Include trigger, evidence, evidence gaps, and prohibited inferences.
