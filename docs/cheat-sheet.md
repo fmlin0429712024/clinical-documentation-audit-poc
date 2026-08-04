@@ -45,6 +45,16 @@ One line per point. Built from Phase 1 (Claude Code + Skills) and Phase 2 (Claud
 - Deterministic code: real unit tests, cheap, fast, exact pass/fail.
 - Non-deterministic output: schema-validity is 100% testable/enforceable; judgment *content* correctness is a "matches the worked example" check, not a mathematical guarantee — label it as such, don't conflate the two.
 
+## GitHub CI/CD (Phase 3)
+
+- GitHub Actions' unit of VM allocation is the **job**, not the workflow — each job in a workflow file gets its own fresh, throwaway runner; steps within one job share that one machine, but two jobs never share a machine.
+- Branch protection has two independent axes: "require status checks to pass" (any number of automated checks — tests, linters, an AI review, etc.) and "require pull request reviews" (real human approvals only — a bot/Action posting a comment or a passing check never counts toward this). Both can gate the same merge button; neither replaces the other.
+- Solo maintainer + "required review" is a real puzzle: GitHub won't let you approve your own PR. Fix is `enforce_admins: false` in branch protection, which lets the repo admin merge via an explicit "bypass rules" action — GitHub visibly flags this as merging without the required approval, which *is* the human-decision moment, just implemented as an admin override instead of a second person clicking Approve.
+- A new job can run unconditionally on every PR (dumb, doesn't look at the diff) or depend on another job via `needs:` (e.g. skip an expensive/slow check if a cheap one already failed) — GitHub Actions itself has no built-in "only run if files X changed" judgment; that's what the separate `paths:`/`paths-ignore:` trigger filter is for, if you want it.
+- A new status check isn't automatically a merge gate — it only blocks merging once explicitly added to branch protection's required-checks list. Adding a job and requiring it to pass are two separate decisions.
+- `anthropics/claude-code-action@v1` needs both an API credential (`ANTHROPIC_API_KEY` secret) *and* the separate Claude GitHub App installed on the repo (github.com/apps/claude) — the credential alone isn't sufficient.
+- That App refuses to act (safely no-ops, doesn't hard-fail) when the triggering workflow file's content doesn't match the target branch's version — the exact situation on any PR that's itself introducing or editing that workflow file. Expected, self-resolving once such a PR merges; a real security control against a malicious PR editing the workflow to exploit the App's trusted credentials, not a bug.
+
 ## Git/security hygiene (learned the hard way, this project)
 
 - `git status --short` collapses an entire untracked directory into one line — a per-file scan looping over that output silently skips every file inside it. Scan actual file lists (`git ls-files`, `git diff --cached`) instead.
