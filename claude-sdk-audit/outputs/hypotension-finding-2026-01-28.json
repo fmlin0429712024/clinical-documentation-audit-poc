@@ -1,0 +1,24 @@
+{
+  "treatment_date": "2026-01-28",
+  "trigger_present": true,
+  "judgment_points": {
+    "recognized": {
+      "status": "documented",
+      "citation": "at approximately 90 minutes into treatment, patient reported dizziness and blood pressure was recorded as low"
+    },
+    "corrective_action": {
+      "status": "documented",
+      "citation": "Ultrafiltration rate was reduced and the patient was repositioned. A saline bolus was given per standing order."
+    },
+    "reassessed": {
+      "status": "documented",
+      "citation": "Blood pressure was reassessed 15 minutes later and had returned to baseline; symptoms resolved."
+    },
+    "physician_notified": {
+      "status": "documented",
+      "citation": "physician was notified of the event and the reassessment findings"
+    }
+  },
+  "draft_question": "All four judgment points are documented: (1) recognition of low blood pressure and dizziness symptoms, (2) corrective actions taken (ultrafiltration reduction, repositioning, saline bolus), (3) reassessment showing blood pressure return to baseline and symptom resolution, and (4) physician notification of the event and findings. Does the documentation provide adequate evidence for assessment of this intradialytic hypotension event?",
+  "prohibited_inference": "This judgment addresses only the adequacy of documentation of a synthetic hypotension event. It does not infer, assign, or opine on diagnosis, clinical coding, severity assessment, treatment appropriateness, or payment implications."
+}

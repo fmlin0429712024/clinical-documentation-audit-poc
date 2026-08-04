@@ -1,0 +1,208 @@
+{
+  "deterministic_checks": [
+    {
+      "treatment_date": "2026-01-14",
+      "rule_id": "SYN-ICHD-01",
+      "method": "deterministic",
+      "triggered": true,
+      "trigger_description": "Synthetic treatment completed materially earlier than scheduled",
+      "status": "requires_human_review",
+      "draft_question": "Is the reason for early termination and the disposition sufficiently documented for the intended review purpose?",
+      "prohibited_inference": "No diagnosis, code, clinical conclusion, or payment implication is inferred."
+    },
+    {
+      "treatment_date": "2026-01-14",
+      "rule_id": "SYN-ICHD-09",
+      "method": "deterministic",
+      "triggered": false,
+      "trigger_description": "Synthetic treatment marked as missed",
+      "status": "no_finding",
+      "draft_question": null,
+      "prohibited_inference": "No diagnosis, code, clinical conclusion, or payment implication is inferred."
+    },
+    {
+      "treatment_date": "2026-01-28",
+      "rule_id": "SYN-ICHD-01",
+      "method": "deterministic",
+      "triggered": false,
+      "trigger_description": "Synthetic treatment completed materially earlier than scheduled",
+      "status": "no_finding",
+      "draft_question": null,
+      "prohibited_inference": "No diagnosis, code, clinical conclusion, or payment implication is inferred."
+    },
+    {
+      "treatment_date": "2026-01-28",
+      "rule_id": "SYN-ICHD-09",
+      "method": "deterministic",
+      "triggered": false,
+      "trigger_description": "Synthetic treatment marked as missed",
+      "status": "no_finding",
+      "draft_question": null,
+      "prohibited_inference": "No diagnosis, code, clinical conclusion, or payment implication is inferred."
+    },
+    {
+      "treatment_date": "2026-02-04",
+      "rule_id": "SYN-ICHD-01",
+      "method": "deterministic",
+      "triggered": false,
+      "trigger_description": "Synthetic treatment completed materially earlier than scheduled",
+      "status": "no_finding",
+      "draft_question": null,
+      "prohibited_inference": "No diagnosis, code, clinical conclusion, or payment implication is inferred."
+    },
+    {
+      "treatment_date": "2026-02-04",
+      "rule_id": "SYN-ICHD-09",
+      "method": "deterministic",
+      "triggered": false,
+      "trigger_description": "Synthetic treatment marked as missed",
+      "status": "no_finding",
+      "draft_question": null,
+      "prohibited_inference": "No diagnosis, code, clinical conclusion, or payment implication is inferred."
+    }
+  ],
+  "non_deterministic_checks": [
+    {
+      "treatment_date": "2026-01-14",
+      "rule_id": "SYN-ICHD-04",
+      "method": "non-deterministic",
+      "trigger_present": false,
+      "judgment_points": {
+        "recognized": {
+          "status": "evidence_gap",
+          "citation": ""
+        },
+        "corrective_action": {
+          "status": "evidence_gap",
+          "citation": ""
+        },
+        "reassessed": {
+          "status": "evidence_gap",
+          "citation": ""
+        },
+        "physician_notified": {
+          "status": "evidence_gap",
+          "citation": ""
+        }
+      },
+      "draft_question": "No hypotension-type event documented. The treatment note states treatment \"ended early\" with \"fictional symptoms\" being addressed, but does not document a blood pressure drop or hypotension-specific symptoms (dizziness, nausea, lightheadedness). The SYN-ICHD-04 trigger for intradialytic hypotension is not present in this record. This review does not apply.",
+      "prohibited_inference": "This finding assigns no diagnosis, code, clinical severity, or payment result. The note's reference to \"fictional symptoms\" is noted as a limitation of the synthetic example."
+    },
+    {
+      "treatment_date": "2026-01-28",
+      "rule_id": "SYN-ICHD-04",
+      "method": "non-deterministic",
+      "trigger_present": true,
+      "judgment_points": {
+        "recognized": {
+          "status": "documented",
+          "citation": "at approximately 90 minutes into treatment, patient reported dizziness and blood pressure was recorded as low"
+        },
+        "corrective_action": {
+          "status": "documented",
+          "citation": "Ultrafiltration rate was reduced and the patient was repositioned. A saline bolus was given per standing order."
+        },
+        "reassessed": {
+          "status": "documented",
+          "citation": "Blood pressure was reassessed 15 minutes later and had returned to baseline; symptoms resolved."
+        },
+        "physician_notified": {
+          "status": "documented",
+          "citation": "physician was notified of the event and the reassessment findings"
+        }
+      },
+      "draft_question": "All four documentation points are present. Please confirm that the documentation of this intradialytic hypotension event is adequate to allow clinical review of the recognition, response, reassessment, and physician notification.",
+      "prohibited_inference": "This review does not assess whether the clinical response was medically appropriate, whether any diagnosis or billing code should be assigned, the severity of the event, or any payment determination. It addresses only whether the treatment and follow-up notes contain sufficient documentation for a qualified reviewer to evaluate the event."
+    },
+    {
+      "treatment_date": "2026-02-04",
+      "rule_id": "SYN-ICHD-04",
+      "method": "non-deterministic",
+      "trigger_present": true,
+      "judgment_points": {
+        "recognized": {
+          "status": "documented",
+          "citation": "at approximately 100 minutes into treatment, patient reported dizziness and blood pressure was recorded as low"
+        },
+        "corrective_action": {
+          "status": "documented",
+          "citation": "Ultrafiltration rate was reduced"
+        },
+        "reassessed": {
+          "status": "evidence_gap",
+          "citation": ""
+        },
+        "physician_notified": {
+          "status": "evidence_gap",
+          "citation": ""
+        }
+      },
+      "draft_question": "Documentation shows that hypotension with dizziness was recognized and ultrafiltration rate was reduced as a corrective action. However, the notes are silent on whether the patient's status was reassessed after the intervention, and whether the physician was notified. Please review whether reassessment and physician notification should have been documented and, if so, whether their absence constitutes inadequate documentation of this hypotension event.",
+      "prohibited_inference": "This finding does not infer a diagnosis, clinical code, severity assessment, or payment determination. It assesses only the documentary completeness of a documented hypotension event against the four judgment points required for adequate intradialytic hypotension documentation."
+    }
+  ],
+  "findings_requiring_human_review": [
+    {
+      "treatment_date": "2026-01-14",
+      "rule_id": "SYN-ICHD-01",
+      "method": "deterministic",
+      "triggered": true,
+      "trigger_description": "Synthetic treatment completed materially earlier than scheduled",
+      "status": "requires_human_review",
+      "draft_question": "Is the reason for early termination and the disposition sufficiently documented for the intended review purpose?",
+      "prohibited_inference": "No diagnosis, code, clinical conclusion, or payment implication is inferred."
+    },
+    {
+      "treatment_date": "2026-01-28",
+      "rule_id": "SYN-ICHD-04",
+      "method": "non-deterministic",
+      "trigger_present": true,
+      "judgment_points": {
+        "recognized": {
+          "status": "documented",
+          "citation": "at approximately 90 minutes into treatment, patient reported dizziness and blood pressure was recorded as low"
+        },
+        "corrective_action": {
+          "status": "documented",
+          "citation": "Ultrafiltration rate was reduced and the patient was repositioned. A saline bolus was given per standing order."
+        },
+        "reassessed": {
+          "status": "documented",
+          "citation": "Blood pressure was reassessed 15 minutes later and had returned to baseline; symptoms resolved."
+        },
+        "physician_notified": {
+          "status": "documented",
+          "citation": "physician was notified of the event and the reassessment findings"
+        }
+      },
+      "draft_question": "All four documentation points are present. Please confirm that the documentation of this intradialytic hypotension event is adequate to allow clinical review of the recognition, response, reassessment, and physician notification.",
+      "prohibited_inference": "This review does not assess whether the clinical response was medically appropriate, whether any diagnosis or billing code should be assigned, the severity of the event, or any payment determination. It addresses only whether the treatment and follow-up notes contain sufficient documentation for a qualified reviewer to evaluate the event."
+    },
+    {
+      "treatment_date": "2026-02-04",
+      "rule_id": "SYN-ICHD-04",
+      "method": "non-deterministic",
+      "trigger_present": true,
+      "judgment_points": {
+        "recognized": {
+          "status": "documented",
+          "citation": "at approximately 100 minutes into treatment, patient reported dizziness and blood pressure was recorded as low"
+        },
+        "corrective_action": {
+          "status": "documented",
+          "citation": "Ultrafiltration rate was reduced"
+        },
+        "reassessed": {
+          "status": "evidence_gap",
+          "citation": ""
+        },
+        "physician_notified": {
+          "status": "evidence_gap",
+          "citation": ""
+        }
+      },
+      "draft_question": "Documentation shows that hypotension with dizziness was recognized and ultrafiltration rate was reduced as a corrective action. However, the notes are silent on whether the patient's status was reassessed after the intervention, and whether the physician was notified. Please review whether reassessment and physician notification should have been documented and, if so, whether their absence constitutes inadequate documentation of this hypotension event.",
+      "prohibited_inference": "This finding does not infer a diagnosis, clinical code, severity assessment, or payment determination. It assesses only the documentary completeness of a documented hypotension event against the four judgment points required for adequate intradialytic hypotension documentation."
+    }
+  ]
+}

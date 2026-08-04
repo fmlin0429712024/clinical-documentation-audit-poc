@@ -1,0 +1,15 @@
+[project]
+name = "claude-sdk-audit"
+version = "0.1.0"
+description = "Part 2 -- same ICHD audit workflow, reimplemented with direct Claude API calls instead of Claude Code skills"
+requires-python = ">=3.11"
+dependencies = [
+    "anthropic>=0.40",
+    "python-dotenv>=1.0",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.0"]
+
+[tool.uv]
+package = false

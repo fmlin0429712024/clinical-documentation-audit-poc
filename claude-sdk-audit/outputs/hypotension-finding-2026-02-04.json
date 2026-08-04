@@ -1,0 +1,24 @@
+{
+  "treatment_date": "2026-02-04",
+  "trigger_present": true,
+  "judgment_points": {
+    "recognized": {
+      "status": "documented",
+      "citation": "at approximately 100 minutes into treatment, patient reported dizziness and blood pressure was recorded as low"
+    },
+    "corrective_action": {
+      "status": "documented",
+      "citation": "Ultrafiltration rate was reduced"
+    },
+    "reassessed": {
+      "status": "evidence_gap",
+      "citation": ""
+    },
+    "physician_notified": {
+      "status": "evidence_gap",
+      "citation": ""
+    }
+  },
+  "draft_question": "Documentation of intradialytic hypotension event is incomplete. The treatment note documents recognition of the blood pressure drop and dizziness, as well as a corrective action (reduction of ultrafiltration rate). However, the notes are silent on whether the patient's status was reassessed following the corrective action, and do not document whether the physician was notified. The follow-up note states only that the \"patient monitored for the remainder of treatment\" without recording the results of that monitoring or any reassessment findings. Please review whether the reassessment and physician notification points are adequately supported by clinical documentation not presented here, or whether they represent gaps in the treatment record.",
+  "prohibited_inference": "No diagnosis, diagnostic code, clinical severity assessment, or payment impact is implied or inferred by this review. This assessment addresses only the presence or absence of documentation elements necessary for a clinical reviewer to evaluate the adequacy of the clinical response\u2014not the correctness or appropriateness of that response itself."
+}
