@@ -98,14 +98,15 @@ flowchart TD
     C2 -->|no| C4["Check: test — failing"]
 
     C3 --> D["Job 2: claude-review (Stage B) starts —<br/>a second, separate throwaway VM<br/>(needs: test — only runs if test passed)"]
-    C4 -.test failed, needs: test<br/>not satisfied.-> D0["claude-review never runs —<br/>no check result at all for it"]
+    C4 -.->|"test failed, needs: test not satisfied"| D0["claude-review is skipped —<br/>never spends an LLM call"]
     D --> D1["Repo checked out onto this VM too —<br/>files just sit on disk, same as git checkout"]
     D1 --> D2["Reads CLAUDE.md etc. directly;<br/>runs gh pr diff / gh pr view<br/>(scoped Bash access — same gh commands<br/>used to inspect these very runs)"]
     D2 --> D3["Judges the diff against this repo's<br/>own guardrails — same reasoning engine<br/>as an interactive Claude Code session,<br/>triggered by CI instead of a person asking"]
     D3 --> D4["Posts findings: gh pr comment"]
     D4 --> D5["Check: claude-review —<br/>informational only, can't block merging"]
 
-    C4 --> E{"Branch protection:<br/>test passing (required) +<br/>human review required"}
+    C3 --> E{"Branch protection:<br/>test passing (required) +<br/>human review required"}
+    C4 --> E
     D5 --> E
     D0 --> E
     E -->|human approves and merges| F["main updated →<br/>push trigger reruns test on main itself;<br/>claude-review skips — no PR to review on a plain push"]
