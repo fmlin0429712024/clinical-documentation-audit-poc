@@ -6,6 +6,11 @@ allowed-tools: Read(data/**)
 
 # Clinical Record Normalization
 
+**Domain:** collaboration — a shared, domain-agnostic first pass. Its
+evidence inventory covers both patient-level and treatment-level fields;
+which downstream skill uses which part is decided later, by
+`audit-rule-evaluation`.
+
 ## Purpose
 
 Turn the raw synthetic gold set into a normalized, source-traceable evidence
@@ -15,8 +20,10 @@ inventing any value the record doesn't contain.
 ## Workflow
 
 1. Read the synthetic record and preserve its source identifiers.
-2. Build an evidence inventory: patient context, treatment context, notes,
-   and audit context.
+2. Build an evidence inventory: patient context (including
+   `patient.nursing_notes` when present — only in
+   `data/synthetic-ichd-patient-goldset-multi-domain.json`), treatment
+   context, notes, and audit context.
 3. Mark absent fields as `not_present`; never invent values.
 4. Carry the synthetic-data notice into the normalized output.
 5. Hand the evidence inventory to `documentation-evidence-review`.

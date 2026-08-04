@@ -6,6 +6,11 @@ allowed-tools: Read(data/**) Read(rules/**)
 
 # Documentation Evidence Review
 
+**Domain:** treatment — currently invoked for treatment-track evidence
+(`SYN-ICHD-01/02/04/09`). `SYN-ICHD-05` (patient domain) is handled
+separately by `patient-continuity-review`, which reads `patient.nursing_notes`
+directly rather than going through this skill.
+
 ## Purpose
 
 Extract only explicit, citable evidence relevant to a candidate audit
