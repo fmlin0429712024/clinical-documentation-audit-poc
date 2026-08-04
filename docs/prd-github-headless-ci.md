@@ -1,9 +1,14 @@
 # PRD: GitHub + Headless CI (Phase 3)
 
-Status: **Draft v0.1 — under review, nothing built yet**
+Status: **v0.2 — Stage A (traditional CI) in progress; Stage B deferred**
 Owner: Forest Lin
 Depends on: Phase 1 (`docs/prd-agentic-audit-tracks.md`) and Phase 2 (`docs/prd-claude-sdk-migration.md`), both concluded.
-Scope: branch/PR workflow, GitHub Actions CI (test suites + headless Claude Code PR review), branch protection gating merge on a passing check + human approval. **No self-hosted VM** — decided against (see Section 3). No auto-merge, no "implementer" role for Claude Code in CI yet.
+Scope: branch/PR workflow, GitHub Actions CI, branch protection gating merge on a passing check + human approval. **No self-hosted VM** — decided against (see Section 3). No auto-merge.
+
+## 0. Two stages (added after user feedback: CI/CD itself is new to them)
+
+- **Stage A (this build pass)** — traditional CI only: a GitHub Actions workflow that runs both test suites, branch protection requiring it to pass plus a human approval. **No headless Claude Code involved at all.** The point is to learn the plain mechanics — branch, PR, status check, gated merge — without an AI-review layer complicating the first pass.
+- **Stage B (deferred, not this build pass)** — add a second job using headless Claude Code (`anthropics/claude-code-action@v1`) to review each PR's diff and post findings as evidence, once Stage A is comfortable. Section 4.1 below documents the verified mechanics for when that happens, but nothing in it is being built right now.
 
 ## 1. Purpose
 
@@ -82,14 +87,18 @@ Configured in GitHub's Settings → Branches (not a YAML file): require the `tes
 
 Add one real new audit use case on a feature branch (candidate: pre-dialysis or post-dialysis documentation adequacy, non-deterministic, following the same skill template as `intradialytic-hypotension-review` — or finally fleshing out the long-deferred `SYN-ICHD-02`/`03` placeholders from Phase 1). Open the PR, watch both jobs run, review the evidence, approve, merge. This is the actual deliverable of this phase — a working example of the pipeline, not just the workflow file sitting unused.
 
-## 5. What I can't do from here
+## 5. `gh` CLI status
 
-No `gh` CLI is installed/authenticated in this environment, so branch protection rules and the `ANTHROPIC_API_KEY` repo secret will need to be set up by the user through the GitHub web UI — I can give exact click-by-click steps when we get there, or the user can install and authenticate `gh` CLI here if they'd rather I do more of it directly (open question 5).
+Installed and authenticated (Section 6, item 5) — branch protection and the repo secret are now scriptable from here via `gh`, not a manual web-UI walkthrough.
 
-## 6. Open questions for review
+## 6. Open questions — resolved
 
-1. Should `ANTHROPIC_API_KEY` be wired into the `test` job too (spends real API cost on every PR, exercises Phase 2's live tests for real) or left out there (free, those 2 tests just auto-skip in CI, less coverage)? The `claude-review` job needs the secret regardless — this question is specifically about the `test` job.
-2. Confirm using the official `anthropics/claude-code-action@v1` rather than hand-rolling the npm-install + raw CLI approach — any reason to prefer hand-rolling (e.g. wanting the raw CLI mechanics as a distinct learning point)?
-3. What should the new use case/rule actually be — pre/post-dialysis documentation (new), or finally fleshing out `SYN-ICHD-02`/`03` (existing placeholders), or something else?
-4. Branch naming convention preference (e.g. `feature/<name>`)?
-5. `gh` CLI setup here, or web-UI steps handed to the user for the parts I can't reach (secrets, branch protection)?
+1. **`ANTHROPIC_API_KEY` wired into the `test` job**: yes — user's call ("risk is low, ~$5, don't overthink it, just do the standard thing"). Full Phase 2 test coverage runs for real in CI.
+2. **Official action confirmed** for whenever Stage B happens — "if it's the better way to learn, especially for the exam, use the formal way."
+3. **New use case decided**: `SYN-ICHD-02` repurposed for **"patient refuses/discontinues treatment early"** — new skill `treatment-refusal-review`, same four-point structure as the hypotension skill (recognized → concerns addressed/risks explained → physician notified → follow-up/monitoring plan documented). Content and test data designed by Claude, per the user's explicit delegation. Scope: Phase 1 only for this PR; a Phase 2 port is a deliberate separate follow-up, not bundled in.
+4. **Branch naming**: `feature/<short-name>` — the standard, textbook GitHub Flow convention (this PR: `feature/treatment-refusal-review`).
+5. **`gh` CLI**: installed and authenticated in this session (browser OAuth device flow, not a manually-created PAT — deliberately avoided given the earlier secret-leak incident). `.claude/settings.json` now pre-approves `Bash(gh:*)`.
+
+## 7. Stage A build log
+
+Filled in as Stage A is actually built — see the repo's commit history and PR for the concrete artifacts (workflow file, branch protection config, the treatment-refusal-review use case).
