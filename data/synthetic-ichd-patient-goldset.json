@@ -15,6 +15,22 @@
       "status": "completed_early",
       "treatment_note": "Synthetic note: treatment ended early; fictional symptoms were addressed and the patient was stable at discharge.",
       "follow_up_note": "Synthetic note: follow-up plan documented for the next treatment."
+    },
+    {
+      "treatment_date": "2026-01-28",
+      "scheduled_minutes": 240,
+      "completed_minutes": 236,
+      "status": "completed",
+      "treatment_note": "Synthetic note: at approximately 90 minutes into treatment, patient reported dizziness and blood pressure was recorded as low. Ultrafiltration rate was reduced and the patient was repositioned. A saline bolus was given per standing order. Blood pressure was reassessed 15 minutes later and had returned to baseline; symptoms resolved. Treatment continued and completed close to schedule.",
+      "follow_up_note": "Synthetic note: physician was notified of the event and the reassessment findings. Patient stable at discharge; standard follow-up plan documented for the next treatment."
+    },
+    {
+      "treatment_date": "2026-02-04",
+      "scheduled_minutes": 240,
+      "completed_minutes": 238,
+      "status": "completed",
+      "treatment_note": "Synthetic note: at approximately 100 minutes into treatment, patient reported dizziness and blood pressure was recorded as low. Ultrafiltration rate was reduced.",
+      "follow_up_note": "Synthetic note: patient monitored for the remainder of treatment."
     }
   ]
 }

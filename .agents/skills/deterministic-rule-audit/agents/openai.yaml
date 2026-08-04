@@ -1,0 +1,4 @@
+interface:
+  display_name: "Deterministic Rule Audit"
+  short_description: "Batch-audit a patient's treatments against SQLite-backed deterministic rules"
+  default_prompt: "Use $deterministic-rule-audit to check every treatment for this synthetic patient against every deterministic rule."

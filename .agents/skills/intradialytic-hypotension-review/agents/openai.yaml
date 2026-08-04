@@ -1,0 +1,4 @@
+interface:
+  display_name: "Intradialytic Hypotension Review"
+  short_description: "Review synthetic ICHD hypotension-event documentation"
+  default_prompt: "Use $intradialytic-hypotension-review to review documentation of a synthetic intradialytic hypotension event."
