@@ -1,0 +1,61 @@
+# CI (Continuous Integration) — Phase 3, Stage A.
+#
+# What this file does: whenever someone opens or updates a pull request
+# against `main`, GitHub spins up a fresh Ubuntu virtual machine (a
+# "GitHub-hosted runner" — free and unlimited for public repos), runs the
+# steps below on it, then throws the machine away. The pass/fail result
+# shows up as a check directly on the PR page.
+#
+# This is intentionally "traditional" CI — it only runs this repo's
+# existing test suites. No AI review step yet (that's Phase 3 Stage B,
+# deferred — see docs/prd-github-headless-ci.md).
+
+name: CI
+
+# Quoted "on" on purpose: unquoted `on:` is a known YAML gotcha — YAML 1.1
+# parses bare on/off/yes/no as booleans, so an unquoted `on:` key silently
+# becomes the boolean `true` under a strict parser. GitHub's own workflow
+# parser tolerates it either way, but quoting avoids the trap.
+"on":
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      # Copies this repo's code onto the runner's fresh VM. Without this
+      # step, there'd be no files here to test at all.
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Phase 1: stdlib-only, no install step needed.
+      - name: Run Phase 1 tests (deterministic tool)
+        run: python3 tools/test_query_deterministic_rule.py -v
+
+      # Phase 2 uses uv for its own isolated dependencies (anthropic,
+      # python-dotenv, pytest) — this installs the uv tool itself.
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
+
+      # `uv sync` installs claude-sdk-audit's pinned dependencies from its
+      # own pyproject.toml/uv.lock. The two live-API tests inside this
+      # suite need a real key to run; ANTHROPIC_API_KEY is stored as a
+      # GitHub Actions secret (Settings -> Secrets and variables -> Actions
+      # on the repo), never committed to a file. If the secret were ever
+      # unset, those two tests would just skip automatically instead of
+      # failing — see claude-sdk-audit/test_nondeterministic.py.
+      - name: Run Phase 2 tests (Claude SDK)
+        working-directory: claude-sdk-audit
+        run: |
+          uv sync
+          uv run pytest -v
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
