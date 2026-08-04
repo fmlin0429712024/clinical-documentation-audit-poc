@@ -12,13 +12,13 @@ This is an architectural communication artifact, not a clinical decision system 
 
 ## Project Roadmap
 
-Built in four numbered phases, each with its own PRD — this is the map, not the detail. **📍 Currently on Phase 2.**
+Built in four numbered phases, each with its own PRD — this is the map, not the detail. **📍 Currently on Phase 3.**
 
 | Phase | What | Status |
 | --- | --- | --- |
 | **Phase 1 — Claude Code + Skills** | The two-track audit workflow as Claude Code skills + a SQLite-backed tool | ✅ Done — [PRD](docs/prd-agentic-audit-tracks.md) |
-| **Phase 2 — Claude SDK** 📍 | Same workflow, reimplemented as direct Python + Claude API calls — schema-enforced output, code-level determinism guarantee | 🚧 Core built, passing — [PRD](docs/prd-claude-sdk-migration.md) |
-| **Phase 3 — GitHub + Headless CI** | Push to GitHub; PR automation via Claude Code headless mode on a self-hosted VM | ⏳ Planned |
+| **Phase 2 — Claude SDK** | Same workflow, reimplemented as direct Python + Claude API calls — schema-enforced output, code-level determinism guarantee | ✅ Done — [PRD](docs/prd-claude-sdk-migration.md) |
+| **Phase 3 — GitHub + Headless CI** 📍 | Branch → PR → CI (GitHub-hosted runners) → headless Claude Code reviews the diff as evidence → human approves → merge | 🚧 Designing — [PRD](docs/prd-github-headless-ci.md) |
 | **Phase 4 — Evaluation Loop** | Capture reviewer feedback (confirm/reject/clarify) and feed it back into rule and prompt design | ⏳ Planned |
 
 ## How Phase 1 Works (Claude Code + Skills)
