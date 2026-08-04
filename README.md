@@ -12,28 +12,33 @@ This is an architectural communication artifact, not a clinical decision system 
 
 ## Project Roadmap
 
-Built in four phases, each with its own PRD — this is the map, not the detail.
+Built in four numbered phases, each with its own PRD — this is the map, not the detail. **📍 Currently on Phase 2.**
 
 | Phase | What | Status |
 | --- | --- | --- |
-| **1. Claude Code + Skills** | The two-track audit workflow as Claude Code skills + a SQLite-backed tool | ✅ Done — [PRD](docs/prd-agentic-audit-tracks.md) |
-| **2. Claude SDK** | Same workflow, reimplemented as direct Python + Claude API calls — schema-enforced output, code-level determinism guarantee | 🔜 Next — [PRD](docs/prd-claude-sdk-migration.md) |
-| **3. GitHub + Headless CI** | Push to GitHub; PR automation via Claude Code headless mode on a self-hosted VM | ⏳ Planned |
-| **4. Evaluation Loop** | Capture reviewer feedback (confirm/reject/clarify) and feed it back into rule and prompt design | ⏳ Planned |
+| **Phase 1 — Claude Code + Skills** | The two-track audit workflow as Claude Code skills + a SQLite-backed tool | ✅ Done — [PRD](docs/prd-agentic-audit-tracks.md) |
+| **Phase 2 — Claude SDK** 📍 | Same workflow, reimplemented as direct Python + Claude API calls — schema-enforced output, code-level determinism guarantee | 🚧 Core built, passing — [PRD](docs/prd-claude-sdk-migration.md) |
+| **Phase 3 — GitHub + Headless CI** | Push to GitHub; PR automation via Claude Code headless mode on a self-hosted VM | ⏳ Planned |
+| **Phase 4 — Evaluation Loop** | Capture reviewer feedback (confirm/reject/clarify) and feed it back into rule and prompt design | ⏳ Planned |
 
-## How Phase 1 Works
+## How Phase 1 Works (Claude Code + Skills)
 
 ```mermaid
 flowchart TD
     A["Synthetic ICHD patient gold set"] --> B["Normalize clinical record"]
     B --> C["Review documentation evidence"]
-    C --> D["Evaluate synthetic audit rules"]
-    D --> E["Draft traceable finding"]
+    C --> D{"Rule Method?"}
+    D -->|deterministic| DT["SQLite-backed tool<br/>zero LLM judgment"]
+    D -->|non-deterministic| ND["LLM judgment vs.<br/>narrative use case"]
+    DT --> E["Draft traceable finding"]
+    ND --> E
     E --> F{"Human clinical / coding review"}
     F -->|Confirm| G["Record audit outcome"]
     F -->|Reject / clarify| H["Capture reviewer feedback"]
     H -.Phase 4.-> C
 ```
+
+The rule-evaluation step is a fork, not a single box — that's the whole thesis of this project, so the diagram shows it explicitly.
 
 Six Claude Code skills implement this, each following the same shape (**Purpose → Workflow → Output Contract → Guardrails**) and each scoped to only the tools it needs (`allowed-tools` in its frontmatter). Run `clinical-audit-orchestrator` as the entry point.
 
@@ -50,15 +55,43 @@ Six Claude Code skills implement this, each following the same shape (**Purpose 
 
 **Try it yourself:** [`docs/testing-guide.md`](docs/testing-guide.md) has copy-pasteable prompts covering each track alone and both together.
 
+## How Phase 2 Works (Claude SDK)
+
+```mermaid
+flowchart TD
+    A["data/synthetic-ichd-patient-goldset.json"] --> B["run_audit.py (orchestrator)"]
+    B --> C["deterministic.py"]
+    C --> D["tools/query_deterministic_rule.py<br/>SQLite, zero LLM"]
+    B --> E["nondeterministic.py"]
+    E --> F["schemas.py: FINDING_TOOL schema"]
+    E --> G["Claude API call<br/>forced tool_choice"]
+    D --> H["findings_requiring_human_review"]
+    G --> H
+```
+
+**Only one node in this diagram (`G`) ever touches the LLM.** Everything else — the orchestration, the deterministic loop, the tool schema, the Method dispatch — is plain Python we wrote, not an agent deciding what to do. That's the core difference from Phase 1's diagram above: same shape of workflow, but the "decide what to call" job moved from a Claude Code agent into our own code.
+
+The coding structure maps onto Phase 1's skills, but doesn't reuse most of them at runtime — only the skill describing a genuine judgment task survives as an actual prompt:
+
+| File | Corresponds to (Phase 1 skill) | Skill markdown read at runtime? |
+| --- | --- | --- |
+| `deterministic.py` | `deterministic-rule-audit` | No — the loop is a plain Python `for`, not agent-followed prose |
+| `schemas.py` | `audit-rule-evaluation`'s Output Contract | No — the format is an enforced JSON schema, not requested in text |
+| `nondeterministic.py` | `intradialytic-hypotension-review` | **Yes** — loads the skill's body at runtime as the prompt; this is the one task that's genuinely a judgment call |
+| `run_audit.py` | `clinical-audit-orchestrator` + `audit-rule-evaluation`'s dispatch | No — Method dispatch is a hardcoded fact, not re-derived from a rules table |
+
+Five of the six skill markdown files live under `claude-sdk-audit/skills/` (copied, not symlinked, from `.claude/skills/`) purely as reference — nothing in Phase 2's code reads them. Only `intradialytic-hypotension-review/SKILL.md` is an actual runtime dependency. See [`claude-sdk-audit/README.md`](claude-sdk-audit/README.md) for setup and how to run it, and `docs/prd-claude-sdk-migration.md` Section 12 for the full build log.
+
 ## Repository Map
 
 | Location | Contents |
 | --- | --- |
-| [`.claude/skills`](.claude/skills) / [`.agents/skills`](.agents/skills) | Skill-based workflow scaffold (mirrored for Claude Code and Codex) |
-| [`data`](data) | Synthetic ICHD patient gold set + SQLite SOP store for deterministic rules |
-| [`tools`](tools) | Deterministic rule lookup/evaluation tool (stdlib Python, no dependencies) + its tests |
+| [`.claude/skills`](.claude/skills) / [`.agents/skills`](.agents/skills) | Phase 1 skill scaffold (mirrored for Claude Code and Codex) |
+| [`claude-sdk-audit`](claude-sdk-audit) | Phase 2 — self-contained Claude SDK reimplementation (own `pyproject.toml`, own README) |
+| [`data`](data) | Synthetic ICHD patient gold set + SQLite SOP store for deterministic rules (shared by both phases) |
+| [`tools`](tools) | Deterministic rule lookup/evaluation tool (stdlib Python, no dependencies) + its tests (shared by both phases) |
 | [`rules`](rules) | Illustrative, non-production audit rules, tagged deterministic vs. non-deterministic |
-| [`outputs`](outputs) | Example traceable audit findings, positive and negative cases |
+| [`outputs`](outputs) | Example traceable audit findings, positive and negative cases (Phase 1) |
 | [`docs`](docs) | Safety/governance notes, per-phase PRDs, testing guide |
 
 ## Safety Boundary
