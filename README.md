@@ -82,6 +82,8 @@ The coding structure maps onto Phase 1's skills, but doesn't reuse most of them 
 
 Five of the six skill markdown files live under `claude-sdk-audit/skills/` (copied, not symlinked, from `.claude/skills/`) purely as reference — nothing in Phase 2's code reads them. Only `intradialytic-hypotension-review/SKILL.md` is an actual runtime dependency. See [`claude-sdk-audit/README.md`](claude-sdk-audit/README.md) for setup and how to run it, and `docs/prd-claude-sdk-migration.md` Section 12 for the full build log.
 
+**Study reference:** [`docs/cheat-sheet.md`](docs/cheat-sheet.md) — every Claude Code / Claude SDK concept this project demonstrates, one line each.
+
 ## Repository Map
 
 | Location | Contents |
@@ -92,6 +94,7 @@ Five of the six skill markdown files live under `claude-sdk-audit/skills/` (copi
 | [`tools`](tools) | Deterministic rule lookup/evaluation tool (stdlib Python, no dependencies) + its tests (shared by both phases) |
 | [`rules`](rules) | Illustrative, non-production audit rules, tagged deterministic vs. non-deterministic |
 | [`outputs`](outputs) | Example traceable audit findings, positive and negative cases (Phase 1) |
+| [`docs/cheat-sheet.md`](docs/cheat-sheet.md) | One-line-per-point study reference for every concept this project demonstrates |
 | [`docs`](docs) | Safety/governance notes, per-phase PRDs, testing guide |
 
 ## Safety Boundary

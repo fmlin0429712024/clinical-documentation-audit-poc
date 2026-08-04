@@ -1,6 +1,6 @@
 # PRD: Claude SDK Migration (Part 2)
 
-Status: **v0.2 — core build done and passing; see Section 12**
+Status: **v0.3 — built, secured, pushed; see Sections 12-13**
 Owner: Forest Lin
 Depends on: Part 1 (`docs/prd-agentic-audit-tracks.md`), concluded and not being re-litigated here.
 Scope: reimplement Part 1's two audit tracks using the Claude/Anthropic Python SDK directly, outside Claude Code. **No GitHub/CI work here** — that's Part 3, and won't be designed until this exists to test against.
@@ -135,4 +135,10 @@ All under `claude-sdk-audit/` (own `pyproject.toml`/`uv.lock`, own `README.md`):
 
 **Verified against a real `ANTHROPIC_API_KEY`, live, in this session** (key format-checked and auth-tested without ever printing the value): all 5 tests pass. `run_audit.py`'s full output matches Part 1 exactly — 6 deterministic checks (1 trigger, `SYN-ICHD-01` on `2026-01-14`), 3 non-deterministic checks (correctly 0 false-positive on `2026-01-14`, which doesn't actually describe hypotension), 3 total findings routed to human review (1 deterministic + 2 non-deterministic — one clean, one 2-gap, matching Part 1's worked examples verbatim). Captured example outputs live in `claude-sdk-audit/outputs/`.
 
-**Not yet done:** nothing blocking — this satisfies Section 9's success criteria. Not committed/pushed yet, pending user go-ahead (same discipline as Part 1's push).
+**Not yet done:** nothing blocking — this satisfies Section 9's success criteria.
+
+## 13. Security incident during the first push (resolved)
+
+The first push attempt was correctly blocked by GitHub's push protection: the real `ANTHROPIC_API_KEY` had been pasted into `claude-sdk-audit/.env.example` (not just the gitignored `.env`), so it was committed. Resolution: fixed `.env.example` back to a placeholder, `git reset --soft` to the last known-clean pushed commit (safe — nothing had reached the remote yet), re-committed with corrected content, re-scanned the full diff range for the key pattern before pushing again. The user rotated the key immediately regardless, since it had also been printed once in the chat transcript during investigation — an independent exposure path from git/GitHub. A follow-up full-history scan (`git log -p --all`) later confirmed no trace remains. See the project's `feedback-secret-scan-before-push` memory for the process bug this surfaced (a naive `git status --short`-driven scan silently skips files inside untracked directories).
+
+**Final state (v0.3):** committed and pushed as `a87118a`/`2f47af9`/`f7b0fb6`.
