@@ -12,14 +12,14 @@ This is an architectural communication artifact, not a clinical decision system 
 
 ## Project Roadmap
 
-Built in numbered phases, each with its own PRD — this is the map, not the detail. Phases pair by **implementation substrate**, not by when they were built: `1`↔`1.5` are both Skills; `2`↔`2.5` are both SDK; the `.5` half of each pair is the multi-agent variant of its parent. **📍 Currently on Phase 1.5 and Phase 3, in parallel** (independent tracks — neither blocks the other).
+Built in numbered phases, each with its own PRD — this is the map, not the detail. Phases pair by **implementation substrate**, not by when they were built: `1`↔`1.5` are both Skills; `2`↔`2.5` are both SDK; the `.5` half of each pair is the multi-agent variant of its parent. **📍 Currently on Phase 3** — 1, 1.5, 2, and 2.5 are all done; next is running the Phase 2.5 branch through the same CI/CD pipeline already built and exercised on Phase 1.5.
 
 | Phase | What | Status |
 | --- | --- | --- |
 | **Phase 1 — Claude Code + Skills** | The two-track audit workflow as Claude Code skills + a SQLite-backed tool. Single flow, no domain split. | ✅ Done — [PRD](docs/prd-agentic-audit-tracks.md) |
-| **Phase 1.5 — Multi-Agent Domain Split (Skills)** 📍 | Same substrate as Phase 1 (Skills only, orchestration is skill instructions, not code) — extended to a patient-domain vs. treatment-domain split plus a collaboration/orchestrator role, all validated inside Claude Code | 🚧 In progress — [PRD](docs/prd-multi-agent-domain-split.md) |
+| **Phase 1.5 — Multi-Agent Domain Split (Skills)** | Same substrate as Phase 1 (Skills only, orchestration is skill instructions, not code) — extended to a patient-domain vs. treatment-domain split plus a collaboration/orchestrator role, all validated inside Claude Code | ✅ Done — [PRD](docs/prd-multi-agent-domain-split.md) |
 | **Phase 2 — Claude SDK** | Same Phase 1 workflow, reimplemented as direct Python + Claude API calls — schema-enforced output, code-level determinism guarantee. Single agent, no domain split. | ✅ Done — [PRD](docs/prd-claude-sdk-migration.md) |
-| **Phase 2.5 — Multi-Agent Claude Agent SDK** | Port Phase 1.5's validated 3-role design into a real multi-agent implementation using the Claude Agent SDK, in a new `claude-agent-sdk-audit/` folder — separate-context subagents, not skills | ⏳ Not started — previewed only, [PRD](docs/prd-multi-agent-domain-split.md#9-phase-25-preview-placeholder-only--not-designed-here) §9 |
+| **Phase 2.5 — Multi-Agent Claude Agent SDK** | Port Phase 1.5's validated 3-role design into a real multi-agent implementation using the Claude Agent SDK, in [`claude-agent-sdk-audit/`](claude-agent-sdk-audit/) — real subagent isolation via the `Task` tool, not skill instructions | ✅ Done — [PRD](docs/prd-claude-agent-sdk-multi-agent.md) |
 | **Phase 3 — GitHub + Headless CI** 📍 | Branch → PR → CI (GitHub-hosted runners) → headless Claude Code reviews the diff as evidence → human approves → merge | 🚧 Stage A + B built (Stage B informational-only, not yet a required check) — [PRD](docs/prd-github-headless-ci.md) |
 | **Phase 4 — Evaluation Loop** | Capture reviewer feedback (confirm/reject/clarify) and feed it back into rule and prompt design | ⏳ Planned |
 
@@ -121,6 +121,42 @@ Five of the six skill markdown files live under `claude-sdk-audit/skills/` (copi
 
 **Study reference:** [`docs/cheat-sheet.md`](docs/cheat-sheet.md) — every Claude Code / Claude SDK concept this project demonstrates, one line each.
 
+## How Phase 2.5 Works (Claude Agent SDK — Real Multi-Agent)
+
+Phase 1.5 validated the patient/treatment/collaboration 3-role split as Claude Code Skills — orchestration lived in skill instructions, not code, and "isolation" between roles was a convention, not an enforced boundary. Phase 2.5 ports that same validated design into [`claude-agent-sdk-audit/`](claude-agent-sdk-audit/): real subagents with SDK-enforced isolated context, dispatched via the `Task` tool, with a code-level (not prompt-level) enforcement hook and a genuine pause/persist/resume human-review step.
+
+```mermaid
+flowchart TD
+    A["Synthetic multi-domain gold set"] --> B["coordinator.py: query()<br/>collaboration agent, one LLM entry point"]
+    B -->|Task| C["patient_domain_auditor<br/>isolated context"]
+    B -->|Task| D["treatment_domain_auditor<br/>isolated context"]
+    C --> E["get_patient_context (native tool)<br/>query_deterministic_rule (external MCP)"]
+    D --> F["get_treatment_context (native tool)<br/>query_deterministic_rule (external MCP)"]
+    E --> G["submit_finding"]
+    F --> G
+    G --> H{"PostToolUse hook:<br/>enforce_escalation"}
+    H -->|invariant violated| G
+    H -->|ok| I["Coordinator aggregates<br/>into one JSON array"]
+    I --> J["Plain-code evaluator<br/>(schema check, not a 3rd LLM call)"]
+    J --> K["review_queue.json"]
+    K --> L["resume_review.py —<br/>human confirms / rejects / clarifies"]
+```
+
+Only one line of our own code ever calls the model (`coordinator.py`'s `query()`); every subagent turn, tool call, and Task dispatch happens *inside* that single call, driven by the model's own reasoning against `ClaudeAgentOptions` — not by Python control flow we wrote. See the file-by-file walkthrough in [`claude-agent-sdk-audit/README.md`](claude-agent-sdk-audit/README.md).
+
+| File | Phase 1.5 skill equivalent | What's different this time |
+| --- | --- | --- |
+| `subagents.py` | `patient-continuity-review`, `intradialytic-hypotension-review`, `treatment-refusal-review`, `deterministic-rule-audit` (skill bodies) | Judgment criteria + worked few-shot examples embedded in `AgentDefinition.prompt`, not read from a skill file at runtime |
+| `native_tools.py` | `Read(data/**)` path-scoped tool access (best-effort, unverified) | `get_patient_context`/`get_treatment_context` are real domain-scoped tools — a subagent physically cannot fetch the other domain's data; `submit_finding` forces the output schema |
+| `mcp_server.py` | `tools/query_deterministic_rule.py` called directly | Same tool, now reached over MCP (external stdio server) instead of a direct Python import — the point of this file is demonstrating that transport, not new rule logic |
+| `hooks.py` | "must call `submit_finding` exactly once, correct status" (a skill instruction) | Same rule, now enforced by a `PostToolUse` hook in code — a violation is rejected and resubmission is forced, not just requested in prose |
+| `coordinator.py` | `clinical-audit-orchestrator` + `audit-rule-evaluation`'s dispatch | Dispatch is a real `Task`-tool decision made by a live LLM turn, not skill-to-skill sequencing inside one Claude Code session |
+| `resume_review.py` | *(implicit — you, the person running Claude Code interactively, were the human)* | A genuinely separate, asynchronous step: findings are persisted to `review_queue.json` and reviewed later, not inline in the same session |
+
+**Verified with a real end-to-end run** (not just code review): 31 findings — `SYN-ICHD-01`/`09` (deterministic, ×7 treatments each), `SYN-ICHD-06` (deterministic, patient-level, ×1), `SYN-ICHD-02`/`04` (non-deterministic, ×7 treatments each), `SYN-ICHD-05` (non-deterministic, ×2 nursing notes) — 8 triggered, matching Phase 1.5's worked examples exactly (same positive/negative pairs, same evidence gaps cited). Two build-time bugs are documented in the PRD: a module-naming collision that silently broke the external MCP server, and a non-blocking MCP connection race that silently dropped deterministic findings from the first live run — both fixed and reverified.
+
+**A build note worth knowing if you extend this:** running `coordinator.py` authenticates via the same OAuth session as an interactive Claude Code login (`apiKeySource: "none"` in the SDK's own init message) — it rides the Claude.ai subscription, not a billed `ANTHROPIC_API_KEY`. A CI environment with no interactive login (see Phase 3 below) would need the API-key path instead.
+
 ## How Phase 3 Works (GitHub CI/CD)
 
 Every trigger in this workflow is a fresh, throwaway virtual machine — GitHub calls it a "runner." Nothing persists between runs; the same steps happen identically whether it's the 1st run or the 100th.
@@ -164,7 +200,8 @@ Both checks feed into the same single human-approval gate at the bottom (`E`) �
 | Location | Contents |
 | --- | --- |
 | [`.claude/skills`](.claude/skills) / [`.agents/skills`](.agents/skills) | Phase 1 + Phase 1.5 skill scaffold, 8 skills (mirrored for Claude Code and Codex), each now tagged with a Domain |
-| [`claude-sdk-audit`](claude-sdk-audit) | Phase 2 — self-contained, single-agent Claude SDK reimplementation (own `pyproject.toml`, own README). Frozen — not extended by Phase 1.5. See below for the naming distinction from the future `claude-agent-sdk-audit/` (Phase 2.5, multi-agent). |
+| [`claude-sdk-audit`](claude-sdk-audit) | Phase 2 — self-contained, single-agent Claude SDK reimplementation (own `pyproject.toml`, own README). Frozen — not extended by Phase 1.5 or Phase 2.5. See below for the naming distinction from `claude-agent-sdk-audit/`. |
+| [`claude-agent-sdk-audit`](claude-agent-sdk-audit) | Phase 2.5 — self-contained, real multi-agent Claude Agent SDK implementation (own `pyproject.toml`, own README). Ports Phase 1.5's 3-role design; not extended by later phases. |
 | [`data`](data) | `synthetic-ichd-patient-goldset.json` — the original gold set, shared by Phase 1 and Phase 2 (Phase 2 references it by path, doesn't copy it — do not change its shape). `synthetic-ichd-patient-goldset-multi-domain.json` — a separate Phase 1.5 fixture adding `patient.nursing_notes`, used only by `patient-continuity-review`. Plus two SQLite SOP stores: `audit_rules.db` (original, shared) and `audit_rules-multi-domain.db` (Phase 1.5, patient-domain only). |
 | [`tools`](tools) | Deterministic rule lookup/evaluation tool (stdlib Python, no dependencies) + its tests (shared by all phases) |
 | [`rules`](rules) | Illustrative, non-production audit rules, tagged by Method (deterministic/non-deterministic) and Domain (treatment/patient) |
@@ -172,7 +209,7 @@ Both checks feed into the same single human-approval gate at the bottom (`E`) �
 | [`docs/cheat-sheet.md`](docs/cheat-sheet.md) | One-line-per-point study reference for every concept this project demonstrates |
 | [`docs`](docs) | Safety/governance notes, per-phase PRDs, testing guide |
 
-**A naming note for when Phase 2.5 exists:** `claude-sdk-audit` (Phase 2, single agent, direct API calls) and the future `claude-agent-sdk-audit` (Phase 2.5, multi-agent, real Claude Agent SDK) are one word apart on purpose — the names track the actual architecture difference — but easy to misread at a glance. If you're looking at agent *count*: Phase 2 is one; Phase 2.5 is three (collaboration, patient, treatment) — the same three roles Phase 1.5 already validated at the Skills level.
+**A naming note:** `claude-sdk-audit` (Phase 2, single agent, direct API calls) and `claude-agent-sdk-audit` (Phase 2.5, multi-agent, real Claude Agent SDK) are one word apart on purpose — the names track the actual architecture difference — but easy to misread at a glance. If you're looking at agent *count*: Phase 2 is one; Phase 2.5 is three (collaboration, patient, treatment) — the same three roles Phase 1.5 already validated at the Skills level.
 
 ## Safety Boundary
 
